@@ -9,7 +9,7 @@ public class Flight {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
     private String date;
     private String planeManufacturer;
     private String planeModel;
@@ -19,14 +19,12 @@ public class Flight {
     private String airlineClass;
     private String flightNumber;
     private int cruisingAltitude;
-    private String depAirport;
-    private String depRunway;
+    private String depAirport;;
     private String arrAirport;
-    private String arrRunway;
 
     //Getters
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
@@ -70,21 +68,13 @@ public class Flight {
         return depAirport;
     }
 
-    public String getDepRunway() {
-        return depRunway;
-    }
-
     public String getArrAirport() {
         return arrAirport;
     }
 
-    public String getArrRunway() {
-        return arrRunway;
-    }
-
     //Setters
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -128,15 +118,8 @@ public class Flight {
         this.depAirport = depAirport;
     }
 
-    public void setDepRunway(String depRunway) {
-        this.depRunway = depRunway;
-    }
-
     public void setArrAirport(String arrAirport) {
         this.arrAirport = arrAirport;
     }
 
-    public void setArrRunway(String arrRunway) {
-        this.arrRunway = arrRunway;
-    }
 }
