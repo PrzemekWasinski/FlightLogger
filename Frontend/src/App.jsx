@@ -1,32 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Plane, Plus, Edit2, Trash2, X, TrendingUp, Globe, Calendar, BarChart3 } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-
 const API_BASE = 'http://localhost:8080/flights'
-
 function App() {
-  const [flights, setFlights] = useState([])
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [showAllFlights, setShowAllFlights] = useState(false)
-  const [editingFlight, setEditingFlight] = useState(null)
-  const [formData, setFormData] = useState({
-    date: '',
-    planeManufacturer: '',
-    planeModel: '',
-    planeRegistration: '',
-    special: '',
-    airline: '',
-    airlineClass: '',
-    flightNumber: '',
-    cruisingAltitude: '',
-    depAirport: '',
-    arrAirport: ''
-  })
-
-  useEffect(() => {
-    fetchFlights()
-  }, [])
-
+  const [flights, setFlights] = useState([]); const [showAddModal, setShowAddModal] = useState(false); const [showAllFlights, setShowAllFlights] = useState(false); const [editingFlight, setEditingFlight] = useState(null)
+  const [formData, setFormData] = useState({ date: '', planeManufacturer: '', planeModel: '', planeRegistration: '', special: '', airline: '', airlineClass: '', flightNumber: '', cruisingAltitude: '', depAirport: '', arrAirport: '' })
+  useEffect(() => { fetchFlights() }, [])
   const fetchFlights = async () => {
     try {
       const res = await fetch(`${API_BASE}/all`)
@@ -36,7 +15,6 @@ function App() {
       console.error('Error fetching flights:', err)
     }
   }
-
   const handleSubmit = async () => {
     try {
       if (editingFlight) {
@@ -58,7 +36,6 @@ function App() {
       console.error('Error saving flight:', err)
     }
   }
-
   const deleteFlight = async (flight) => {
     if (!window.confirm('Delete this flight?')) return
     try {
@@ -72,111 +49,40 @@ function App() {
       console.error('Error deleting flight:', err)
     }
   }
-
   const closeModal = () => {
     setShowAddModal(false)
     setEditingFlight(null)
-    setFormData({
-      date: '',
-      planeManufacturer: '',
-      planeModel: '',
-      planeRegistration: '',
-      special: '',
-      airline: '',
-      airlineClass: '',
-      flightNumber: '',
-      cruisingAltitude: '',
-      depAirport: '',
-      arrAirport: ''
-    })
+    setFormData({ date: '', planeManufacturer: '', planeModel: '', planeRegistration: '', special: '', airline: '', airlineClass: '', flightNumber: '', cruisingAltitude: '', depAirport: '', arrAirport: '' })
   }
-
   const openEditModal = (flight) => {
     setEditingFlight(flight)
     setFormData(flight)
     setShowAddModal(true)
   }
-
   const getStats = () => {
-    const airlines = {}
-    const airports = {}
-    const planeModels = {}
-    const routes = {}
-    const manufacturers = {}
-    const monthlyFlights = {}
+    const airlines = {}; const airports = {}; const planeModels = {}; const routes = {}; const manufacturers = {}; const monthlyFlights = {}
     const currentYear = new Date().getFullYear()
-    
     flights.forEach(f => {
-      // Airlines
       airlines[f.airline] = (airlines[f.airline] || 0) + 1
-      
-      // Airports (both departure and arrival)
       airports[f.depAirport] = (airports[f.depAirport] || 0) + 1
       airports[f.arrAirport] = (airports[f.arrAirport] || 0) + 1
-      
-      // Plane models (manufacturer + model combined)
       const planeModel = `${f.planeManufacturer} ${f.planeModel}`.trim()
-      if (planeModel) {
-        planeModels[planeModel] = (planeModels[planeModel] || 0) + 1
-      }
-      
-      // Routes (departure → arrival)
+      if (planeModel) { planeModels[planeModel] = (planeModels[planeModel] || 0) + 1 }
       const route = `${f.depAirport} → ${f.arrAirport}`
       routes[route] = (routes[route] || 0) + 1
-      
-      // Manufacturers for chart
       manufacturers[f.planeManufacturer] = (manufacturers[f.planeManufacturer] || 0) + 1
-      
-      // Monthly flights
       const date = new Date(f.date)
-      if (date.getFullYear() === currentYear) {
-        const month = date.toLocaleDateString('en', { month: 'short' })
-        monthlyFlights[month] = (monthlyFlights[month] || 0) + 1
-      }
+      if (date.getFullYear() === currentYear) { const month = date.toLocaleDateString('en', { month: 'short' }); monthlyFlights[month] = (monthlyFlights[month] || 0) + 1 }
     })
-
-    const flightsThisYear = flights.filter(f => 
-      new Date(f.date).getFullYear() === currentYear
-    ).length
-
-    // Get top 3 airlines
-    const topAirlines = Object.entries(airlines)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([name, count]) => ({ name, count }))
-
-    // Get top 3 airports
-    const topAirports = Object.entries(airports)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([name, count]) => ({ name, count }))
-
-    // Get top 3 plane models
-    const topPlaneModels = Object.entries(planeModels)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([name, count]) => ({ name, count }))
-
-    // Get top 3 routes
-    const topRoutes = Object.entries(routes)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([name, count]) => ({ name, count }))
-
+    const flightsThisYear = flights.filter(f => new Date(f.date).getFullYear() === currentYear).length
+    const topAirlines = Object.entries(airlines).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }))
+    const topAirports = Object.entries(airports).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }))
+    const topPlaneModels = Object.entries(planeModels).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }))
+    const topRoutes = Object.entries(routes).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, count]) => ({ name, count }))
     const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    const monthlyData = monthOrder.map(month => ({
-      month,
-      flights: monthlyFlights[month] || 0
-    }))
-
-    const airlineData = Object.entries(airlines)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, value]) => ({ name, value }))
-
-    const manufacturerData = Object.entries(manufacturers)
-      .map(([name, value]) => ({ name, value }))
-
+    const monthlyData = monthOrder.map(month => ({ month, flights: monthlyFlights[month] || 0 }))
+    const airlineData = Object.entries(airlines).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, value]) => ({ name, value }))
+    const manufacturerData = Object.entries(manufacturers).map(([name, value]) => ({ name, value }))
     return {
       total: flights.length,
       topAirlines,
@@ -191,15 +97,11 @@ function App() {
       manufacturerData
     }
   }
-
   const stats = getStats()
-
   const COLORS = ['#3b82f6', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-slate-950 to-slate-900 text-gray-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <div 
             onClick={() => setShowAllFlights(false)}
@@ -213,10 +115,8 @@ function App() {
             </h1>
           </div>
         </div>
-
         {!showAllFlights ? (
           <>
-            {/* Quick Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <StatCard 
                 title="Total Flights" 
@@ -239,9 +139,6 @@ function App() {
                 icon={<TrendingUp size={24} />}
               />
             </div>
-            
-
-            {/* Top Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <TopStatCard 
                 title="Most Frequent Airlines"
@@ -260,10 +157,7 @@ function App() {
                 items={stats.topRoutes}
               />
             </div>
-
             <br></br>
-
-            {/* Action Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <button
                 onClick={() => setShowAddModal(true)}
@@ -289,10 +183,7 @@ function App() {
                 </div>
               </button>
             </div>
-
-            {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Monthly Flights Chart */}
               <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl">
                 <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Monthly Flight Activity</h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -308,8 +199,6 @@ function App() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* Top Airlines Chart */}
               <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl">
                 <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Top Airlines</h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -326,8 +215,6 @@ function App() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* Aircraft Manufacturers */}
               <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl lg:col-span-2">
                 <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Aircraft Manufacturers</h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -406,8 +293,6 @@ function App() {
             </div>
           </div>
         )}
-
-        {/* Add/Edit Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -513,36 +398,10 @@ function App() {
     </div>
   )
 }
-
 function StatCard({ title, value, icon }) {
-  return (
-    <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider">{title}</h3>
-        <div className="text-blue-400 opacity-80">{icon}</div>
-      </div>
-      <p className="text-4xl font-black bg-gradient-to-br from-white to-blue-100 bg-clip-text text-transparent">{value}</p>
-    </div>
-  )
+  return (<div className="relative bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl"><div className="flex items-center justify-between mb-2"><h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider">{title}</h3><div className="text-blue-400 opacity-80">{icon}</div></div><p className="text-4xl font-black bg-gradient-to-br from-white to-blue-100 bg-clip-text text-transparent">{value}</p></div>)
 }
-
 function TopStatCard({ title, items }) {
-  return (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-      <h3 className="text-gray-300 text-sm font-medium uppercase tracking-wider mb-4">{title}</h3>
-      <div className="space-y-3">
-        {items.map((item, idx) => (
-          <div key={idx} className="flex justify-between items-center">
-            <span className="text-white font-medium truncate pr-2">{item.name}</span>
-            <span className="text-blue-400 font-bold text-lg">{item.count}</span>
-          </div>
-        ))}
-        {items.length === 0 && (
-          <div className="text-gray-500 text-sm">No data yet</div>
-        )}
-      </div>
-    </div>
-  )
+  return (<div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl"><h3 className="text-gray-300 text-sm font-medium uppercase tracking-wider mb-4">{title}</h3><div className="space-y-3">{items.map((item, idx) => (<div key={idx} className="flex justify-between items-center"><span className="text-white font-medium truncate pr-2">{item.name}</span><span className="text-blue-400 font-bold text-lg">{item.count}</span></div>))}{items.length === 0 && (<div className="text-gray-500 text-sm">No data yet</div>)}</div></div>)
 }
-
 export default App
