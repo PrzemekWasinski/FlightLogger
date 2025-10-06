@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("planes")
+@RequestMapping("flights")
 public class FlightController {
 
     @Autowired
@@ -25,6 +25,7 @@ public class FlightController {
         );
     }
 
+    //Get a single flight
     @GetMapping("flight/{id}")
     public ResponseEntity<Flight> getFlightById(@PathVariable Long id) {
         return flightService.getFlightById(id)
@@ -32,6 +33,7 @@ public class FlightController {
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    //Add a new flight
     @PostMapping("add")
     public ResponseEntity<Boolean> addFlight(@RequestBody Flight flight) {
         return new ResponseEntity<>(
@@ -40,14 +42,18 @@ public class FlightController {
         );
     }
 
+    //Delete a flight
     @DeleteMapping("delete")
     public ResponseEntity<Boolean> deleteFlight(@RequestBody Flight flight) {
+        boolean response = flightService.deleteFlight(flight);
+
         return new ResponseEntity<>(
-                flightService.deleteFlight(flight),
+                response,
                 HttpStatus.OK
         );
     }
 
+    //Update a flight
     @PutMapping("update/{id}")
     public ResponseEntity<Boolean> updateFlight(@PathVariable Long id, @RequestBody Flight flight) {
         boolean result = flightService.updateFlight(id, flight);
