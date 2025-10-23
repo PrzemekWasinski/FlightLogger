@@ -3,13 +3,13 @@ Fligth Logger is a web application used to track flights that you have been on a
 most frequent airline, airport, airplane etc.
 
 # Home Page
-<img width="1893" height="932" alt="home" src="https://github.com/user-attachments/assets/3d6b7224-677a-4450-881e-3c8ea777be12" />
+<img width="1918" height="944" alt="home" src="https://github.com/user-attachments/assets/cc774441-5b52-44a9-a48d-5f91c200203b" />
 
 # Add a new flight
-<img width="1872" height="913" alt="add" src="https://github.com/user-attachments/assets/56a891f7-c9bd-4265-96b9-16cdea7c3e4b" />
+<img width="1917" height="944" alt="add" src="https://github.com/user-attachments/assets/94f7a819-3b78-41fb-88a1-b1b107799918" />
 
 # View all flights
-<img width="1868" height="922" alt="all" src="https://github.com/user-attachments/assets/8c7d3d1d-1f46-45b3-a6f4-87d5dc65fccb" />
+<img width="1918" height="943" alt="flights" src="https://github.com/user-attachments/assets/ab76aa5b-ac69-441c-8c3a-2b7735eada3b" />
 
 # Tech stack
     Frontend: React + Vite
