@@ -1,1 +1,41 @@
-export default { content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"], theme: { extend: {}, }, plugins: [], }
+export default {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        'dark': {
+          950: '#0a0e1a',
+          900: '#0f1419',
+          850: '#151b26',
+          800: '#1a2332',
+          700: '#242f42',
+          600: '#2e3d54',
+        },
+        'accent': {
+          blue: '#4a90e2',
+          teal: '#5fb3b3',
+          green: '#7fb069',
+          amber: '#d4a574',
+          red: '#e06c75',
+          purple: '#9f7aea',
+        },
+        'neutral': {
+          100: '#e5e7eb',
+          200: '#c7cad1',
+          300: '#9ca3af',
+          400: '#6b7280',
+          500: '#4b5563',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+      },
+      boxShadow: {
+        'glow-blue': '0 0 20px rgba(74, 144, 226, 0.15)',
+        'glow-teal': '0 0 20px rgba(95, 179, 179, 0.15)',
+      },
+    },
+  },
+  plugins: [],
+}

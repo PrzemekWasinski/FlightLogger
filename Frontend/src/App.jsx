@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Plane, Plus, Edit2, Trash2, X, TrendingUp, Globe, Calendar, BarChart3 } from 'lucide-react'
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Plane, Plus, Edit2, Trash2, X, Calendar, BarChart3, MapPin, Building2 } from 'lucide-react'
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const API_BASE = 'http://localhost:8080/flights'
-const COLORS = ['#3b82f6', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
+const COLORS = ['#4a90e2', '#5fb3b3', '#7fb069', '#d4a574', '#9f7aea', '#e06c75']
 const emptyForm = { date: '', planeManufacturer: '', planeModel: '', planeRegistration: '', special: '', airline: '', airlineClass: '', flightNumber: '', cruisingAltitude: '', depAirport: '', arrAirport: '' }
 
 function App() {
@@ -46,7 +46,7 @@ function App() {
   const getStats = () => {
     const airlines = {}, airports = {}, planeModels = {}, routes = {}, manufacturers = {}, monthlyFlights = {}
     const currentYear = new Date().getFullYear()
-    
+
     flights.forEach(f => {
       airlines[f.airline] = (airlines[f.airline] || 0) + 1
       airports[f.depAirport] = (airports[f.depAirport] || 0) + 1
@@ -64,7 +64,7 @@ function App() {
 
     const sortTop = (obj, n) => Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n).map(([name, count]) => ({ name, count }))
     const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    
+
     return {
       total: flights.length,
       topAirlines: sortTop(airlines, 3),
@@ -81,119 +81,244 @@ function App() {
   }
 
   const stats = getStats()
-  const inputClass = "p-4 border border-slate-700 bg-slate-800 rounded-xl text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
-  const chartTooltip = { backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }
+  const inputClass = "w-full px-4 py-3 bg-dark-850 border border-dark-700 text-neutral-100 placeholder-neutral-400 focus:border-accent-blue focus:outline-none focus:ring-1 focus:ring-accent-blue transition-colors"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-slate-950 to-slate-900 text-gray-100 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div onClick={() => setShowAllFlights(false)} className="cursor-pointer inline-block">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2 flex flex-wrap items-center gap-4 pb-2">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 rounded-2xl shadow-lg shadow-blue-500/30">
-                <Plane className="text-white" size={40} />
-              </div>
-              <span>Flight Logger</span>
-            </h1>
+    <div className="min-h-screen bg-dark-950 text-neutral-100 font-sans">
+      {/* Navigation Bar */}
+      <nav className="bg-dark-900 border-b border-dark-800 sticky top-0 z-40">
+        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+          <div
+            onClick={() => setShowAllFlights(false)}
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            <div className="bg-accent-blue p-2.5 group-hover:bg-accent-teal transition-colors">
+              <Plane className="text-white" size={24} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-neutral-100">Flight Logger</h1>
+              <p className="text-xs text-neutral-400 font-mono">Aviation Tracking System</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 bg-accent-blue hover:bg-accent-teal text-white px-4 py-2 text-sm font-medium transition-colors"
+            >
+              <Plus size={18} />
+              <span>Add Flight</span>
+            </button>
+            <button
+              onClick={() => setShowAllFlights(!showAllFlights)}
+              className="flex items-center gap-2 bg-dark-800 hover:bg-dark-700 text-neutral-200 px-4 py-2 text-sm font-medium border border-dark-700 transition-colors"
+            >
+              <BarChart3 size={18} />
+              <span>{showAllFlights ? 'Dashboard' : 'All Flights'}</span>
+            </button>
           </div>
         </div>
+      </nav>
 
+      <div className="max-w-[1600px] mx-auto px-6 py-8">
         {!showAllFlights ? (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <StatCard title="Total Flights" value={stats.total} icon={<Plane size={24} />} />
-              <StatCard title="This Year" value={stats.flightsThisYear} icon={<Calendar size={24} />} />
-              <StatCard title="Airlines" value={stats.uniqueAirlines} icon={<Globe size={24} />} />
-              <StatCard title="Airports" value={stats.uniqueAirports} icon={<TrendingUp size={24} />} />
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <MetricCard
+                title="Total Flights"
+                value={stats.total}
+                icon={<Plane size={20} />}
+                color="blue"
+              />
+              <MetricCard
+                title="This Year"
+                value={stats.flightsThisYear}
+                icon={<Calendar size={20} />}
+                color="teal"
+              />
+              <MetricCard
+                title="Airlines"
+                value={stats.uniqueAirlines}
+                icon={<Building2 size={20} />}
+                color="green"
+              />
+              <MetricCard
+                title="Airports"
+                value={stats.uniqueAirports}
+                icon={<MapPin size={20} />}
+                color="amber"
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <TopStatCard title="Most Frequent Airlines" items={stats.topAirlines} />
-              <TopStatCard title="Most Visited Airports" items={stats.topAirports} />
-              <TopStatCard title="Most Common Aircraft" items={stats.topPlaneModels} />
-              <TopStatCard title="Most Common Routes" items={stats.topRoutes} />
+            {/* Top Statistics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <TopListCard title="Top Airlines" items={stats.topAirlines} />
+              <TopListCard title="Top Airports" items={stats.topAirports} />
+              <TopListCard title="Common Aircraft" items={stats.topPlaneModels} />
+              <TopListCard title="Popular Routes" items={stats.topRoutes} />
             </div>
 
-            <br />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <button onClick={() => setShowAddModal(true)} className="relative bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-3xl p-8 shadow-2xl hover:shadow-blue-500/20 hover:border-blue-600/50 transition-all duration-300 hover:scale-105">
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <div className="bg-blue-700 p-6 rounded-2xl"><Plus size={48} className="text-white" /></div>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Add New Flight</span>
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              {/* Monthly Activity - Takes 2 columns */}
+              <div className="lg:col-span-2 bg-dark-900 border border-dark-800 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-neutral-100">Monthly Flight Activity</h3>
+                  <span className="text-xs text-neutral-400 font-mono">{new Date().getFullYear()}</span>
                 </div>
-              </button>
-              <button onClick={() => setShowAllFlights(true)} className="relative bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-8 shadow-2xl hover:shadow-blue-500/20 hover:border-blue-600/50 transition-all duration-300 hover:scale-105">
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <div className="bg-blue-700 p-6 rounded-2xl"><BarChart3 size={48} className="text-white" /></div>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">View All Flights</span>
-                </div>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl">
-                <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Monthly Flight Activity</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={stats.monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="month" stroke="#64748b" />
-                    <YAxis stroke="#64748b" />
-                    <Tooltip contentStyle={chartTooltip} labelStyle={{ color: '#f1f5f9' }} />
-                    <Line type="monotone" dataKey="flights" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 5 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1a2332" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      stroke="#6b7280"
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      axisLine={{ stroke: '#2e3d54' }}
+                    />
+                    <YAxis
+                      stroke="#6b7280"
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      axisLine={{ stroke: '#2e3d54' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0f1419',
+                        border: '1px solid #2e3d54',
+                        borderRadius: '0',
+                        padding: '8px 12px'
+                      }}
+                      labelStyle={{ color: '#e5e7eb', fontWeight: 600, marginBottom: '4px' }}
+                      itemStyle={{ color: '#4a90e2' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="flights"
+                      stroke="#4a90e2"
+                      strokeWidth={2}
+                      dot={{ fill: '#4a90e2', r: 4 }}
+                      activeDot={{ r: 6, fill: '#5fb3b3' }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
 
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl">
-                <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Top Airlines</h3>
+              {/* Airline Distribution */}
+              <div className="bg-dark-900 border border-dark-800 p-6">
+                <h3 className="text-lg font-semibold text-neutral-100 mb-6">Airline Distribution</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={stats.airlineData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis dataKey="name" stroke="#64748b" />
-                    <YAxis stroke="#64748b" />
-                    <Tooltip contentStyle={chartTooltip} labelStyle={{ color: '#f1f5f9' }} cursor={false} />
-                    <Bar dataKey="value" fill="#3b82f6" radius={[12, 12, 0, 0]} />
+                  <BarChart data={stats.airlineData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1a2332" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      stroke="#6b7280"
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      axisLine={{ stroke: '#2e3d54' }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      stroke="#6b7280"
+                      tick={{ fill: '#9ca3af', fontSize: 12 }}
+                      axisLine={{ stroke: '#2e3d54' }}
+                      width={100}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0f1419',
+                        border: '1px solid #2e3d54',
+                        borderRadius: '0',
+                        padding: '8px 12px'
+                      }}
+                      cursor={{ fill: '#1a2332' }}
+                    />
+                    <Bar dataKey="value" fill="#4a90e2" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </div>
 
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl lg:col-span-2">
-                <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Aircraft Manufacturers</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={stats.manufacturerData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={100} dataKey="value">
-                      {stats.manufacturerData.map((entry, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip contentStyle={chartTooltip} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            {/* Manufacturer Distribution */}
+            <div className="bg-dark-900 border border-dark-800 p-6">
+              <h3 className="text-lg font-semibold text-neutral-100 mb-6">Aircraft Manufacturers</h3>
+              <ResponsiveContainer width="100%" height={350}>
+                <PieChart>
+                  <Pie
+                    data={stats.manufacturerData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => percent > 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : ''}
+                    outerRadius={120}
+                    dataKey="value"
+                    stroke="#0f1419"
+                    strokeWidth={2}
+                  >
+                    {stats.manufacturerData.map((_, i) => (
+                      <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0f1419',
+                      border: '1px solid #2e3d54',
+                      borderRadius: '0',
+                      padding: '8px 12px'
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    wrapperStyle={{ fontSize: '12px', color: '#9ca3af' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </>
         ) : (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold text-white">All Flights</h2>
-              <button onClick={() => setShowAllFlights(false)} className="bg-slate-800 text-white px-6 py-3 rounded-xl hover:bg-slate-700 transition-all shadow-lg">Back to Dashboard</button>
+          <div className="bg-dark-900 border border-dark-800">
+            <div className="border-b border-dark-800 p-6">
+              <h2 className="text-2xl font-bold text-neutral-100">All Flights</h2>
+              <p className="text-sm text-neutral-400 mt-1">Complete flight history and records</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-800">
-                  <tr className="border-b border-slate-700">
-                    {['Date', 'Flight', 'Route', 'Aircraft', 'Airline', 'Actions'].map(h => <th key={h} className="p-4 text-left text-blue-400 font-semibold">{h}</th>)}
+                <thead>
+                  <tr className="bg-dark-850 border-b border-dark-800">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">Flight</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">Route</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">Aircraft</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-300 uppercase tracking-wider">Airline</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-neutral-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-dark-800">
                   {flights.map(f => (
-                    <tr key={f.id} className="border-b border-slate-800 hover:bg-slate-800 transition-colors">
-                      <td className="p-4">{f.date}</td>
-                      <td className="p-4 font-semibold text-blue-400">{f.flightNumber}</td>
-                      <td className="p-4">{f.depAirport} → {f.arrAirport}</td>
-                      <td className="p-4">{f.planeManufacturer} {f.planeModel}</td>
-                      <td className="p-4">{f.airline}</td>
-                      <td className="p-4 flex gap-3">
-                        <button onClick={() => openEditModal(f)} className="text-blue-400 hover:text-blue-300 transition-colors hover:scale-110 transform"><Edit2 size={20} /></button>
-                        <button onClick={() => deleteFlight(f)} className="text-red-400 hover:text-red-300 transition-colors hover:scale-110 transform"><Trash2 size={20} /></button>
+                    <tr key={f.id} className="hover:bg-dark-850 transition-colors">
+                      <td className="px-6 py-4 text-sm text-neutral-200 font-mono">{f.date}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-accent-blue">{f.flightNumber}</td>
+                      <td className="px-6 py-4 text-sm text-neutral-300">
+                        <span className="font-mono">{f.depAirport}</span>
+                        <span className="text-neutral-500 mx-2">→</span>
+                        <span className="font-mono">{f.arrAirport}</span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-neutral-300">{f.planeManufacturer} {f.planeModel}</td>
+                      <td className="px-6 py-4 text-sm text-neutral-300">{f.airline}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={() => openEditModal(f)}
+                            className="text-accent-blue hover:text-accent-teal transition-colors"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => deleteFlight(f)}
+                            className="text-accent-red hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -204,27 +329,170 @@ function App() {
         )}
 
         {showAddModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-3xl font-bold text-white">{editingFlight ? 'Edit Flight' : 'Add New Flight'}</h2>
-                  <button onClick={closeModal} className="text-gray-400 hover:text-white transition-colors hover:rotate-90 transform duration-300"><X size={28} /></button>
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+            <div className="bg-dark-900 border border-dark-800 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="border-b border-dark-800 p-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-neutral-100">
+                    {editingFlight ? 'Edit Flight' : 'Add New Flight'}
+                  </h2>
+                  <p className="text-sm text-neutral-400 mt-1">
+                    {editingFlight ? 'Update flight information' : 'Enter flight details'}
+                  </p>
                 </div>
+                <button
+                  onClick={closeModal}
+                  className="text-neutral-400 hover:text-neutral-100 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className={`col-span-full ${inputClass}`} />
-                  <input type="text" placeholder="Flight Number" value={formData.flightNumber} onChange={e => setFormData({ ...formData, flightNumber: e.target.value })} className={inputClass} />
-                  <input type="text" placeholder="Airline" value={formData.airline} onChange={e => setFormData({ ...formData, airline: e.target.value })} className={inputClass} />
-                  <input type="text" placeholder="Departure Airport" value={formData.depAirport} onChange={e => setFormData({ ...formData, depAirport: e.target.value })} className={inputClass} />
-                  <input type="text" placeholder="Arrival Airport" value={formData.arrAirport} onChange={e => setFormData({ ...formData, arrAirport: e.target.value })} className={inputClass} />
-                  <input type="text" placeholder="Plane Manufacturer" value={formData.planeManufacturer} onChange={e => setFormData({ ...formData, planeManufacturer: e.target.value })} className={inputClass} />
-                  <input type="text" placeholder="Plane Model" value={formData.planeModel} onChange={e => setFormData({ ...formData, planeModel: e.target.value })} className={inputClass} />
-                  <input type="text" placeholder="Registration" value={formData.planeRegistration} onChange={e => setFormData({ ...formData, planeRegistration: e.target.value })} className={inputClass} />
-                  <input type="text" placeholder="Class" value={formData.airlineClass} onChange={e => setFormData({ ...formData, airlineClass: e.target.value })} className={inputClass} />
-                  <input type="number" placeholder="Cruising Altitude" value={formData.cruisingAltitude} onChange={e => setFormData({ ...formData, cruisingAltitude: e.target.value })} className={inputClass} />
-                  <input type="text" placeholder="Special Notes" value={formData.special} onChange={e => setFormData({ ...formData, special: e.target.value })} className={`col-span-full ${inputClass}`} />
-                  <button onClick={handleSubmit} className="col-span-full bg-blue-700 text-white py-4 rounded-xl hover:bg-blue-600 transition-all font-bold text-lg shadow-lg hover:scale-105 transform">
+                  <div className="col-span-full">
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Flight Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.date}
+                      onChange={e => setFormData({ ...formData, date: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Flight Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="AA1234"
+                      value={formData.flightNumber}
+                      onChange={e => setFormData({ ...formData, flightNumber: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Airline
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="American Airlines"
+                      value={formData.airline}
+                      onChange={e => setFormData({ ...formData, airline: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Departure Airport
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="JFK"
+                      value={formData.depAirport}
+                      onChange={e => setFormData({ ...formData, depAirport: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Arrival Airport
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="LAX"
+                      value={formData.arrAirport}
+                      onChange={e => setFormData({ ...formData, arrAirport: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Manufacturer
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Boeing"
+                      value={formData.planeManufacturer}
+                      onChange={e => setFormData({ ...formData, planeManufacturer: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Model
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="737-800"
+                      value={formData.planeModel}
+                      onChange={e => setFormData({ ...formData, planeModel: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Registration
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="N12345"
+                      value={formData.planeRegistration}
+                      onChange={e => setFormData({ ...formData, planeRegistration: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Class
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Economy"
+                      value={formData.airlineClass}
+                      onChange={e => setFormData({ ...formData, airlineClass: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Cruising Altitude (ft)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="35000"
+                      value={formData.cruisingAltitude}
+                      onChange={e => setFormData({ ...formData, cruisingAltitude: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="col-span-full">
+                    <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                      Special Notes
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Optional notes or remarks"
+                      value={formData.special}
+                      onChange={e => setFormData({ ...formData, special: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={handleSubmit}
+                    className="flex-1 bg-accent-blue hover:bg-accent-teal text-white py-3 font-semibold transition-colors"
+                  >
                     {editingFlight ? 'Update Flight' : 'Add Flight'}
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    className="px-6 bg-dark-800 hover:bg-dark-700 text-neutral-200 py-3 font-semibold border border-dark-700 transition-colors"
+                  >
+                    Cancel
                   </button>
                 </div>
               </div>
@@ -236,27 +504,37 @@ function App() {
   )
 }
 
-const StatCard = ({ title, value, icon }) => (
-  <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider">{title}</h3>
-      <div className="text-blue-400 opacity-80">{icon}</div>
-    </div>
-    <p className="text-4xl font-black bg-gradient-to-br from-white to-blue-100 bg-clip-text text-transparent">{value}</p>
-  </div>
-)
+const MetricCard = ({ title, value, icon, color }) => {
+  const colorClasses = {
+    blue: 'text-accent-blue',
+    teal: 'text-accent-teal',
+    green: 'text-accent-green',
+    amber: 'text-accent-amber',
+  }
 
-const TopStatCard = ({ title, items }) => (
-  <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-    <h3 className="text-gray-300 text-sm font-medium uppercase tracking-wider mb-4">{title}</h3>
+  return (
+    <div className="bg-dark-900 border border-dark-800 p-6">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{title}</span>
+        <div className={colorClasses[color]}>{icon}</div>
+      </div>
+      <div className="text-3xl font-bold text-neutral-100">{value}</div>
+    </div>
+  )
+}
+
+const TopListCard = ({ title, items }) => (
+  <div className="bg-dark-900 border border-dark-800 p-6">
+    <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">{title}</h3>
     <div className="space-y-3">
-      {items.map((item, idx) => (
-        <div key={idx} className="flex justify-between items-center">
-          <span className="text-white font-medium truncate pr-2">{item.name}</span>
-          <span className="text-blue-400 font-bold text-lg">{item.count}</span>
+      {items.length > 0 ? items.map((item, idx) => (
+        <div key={idx} className="flex items-center justify-between">
+          <span className="text-sm text-neutral-200 truncate pr-3">{item.name}</span>
+          <span className="text-sm font-bold text-accent-blue font-mono">{item.count}</span>
         </div>
-      ))}
-      {items.length === 0 && <div className="text-gray-500 text-sm">No data yet</div>}
+      )) : (
+        <div className="text-sm text-neutral-500">No data available</div>
+      )}
     </div>
   </div>
 )
