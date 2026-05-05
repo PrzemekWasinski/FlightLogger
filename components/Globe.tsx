@@ -22,11 +22,10 @@ function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
   );
 }
 
-function arcColor(count: number): number {
-  if (count >= 4) return 0x990000;
-  if (count === 3) return 0xcc2200;
-  if (count === 2) return 0xff3311;
-  return 0xff6633;
+function arcColor(count: number, min: number, max: number): THREE.Color {
+  const t = max > min ? (count - min) / (max - min) : 0;
+  //r=1 g=0 b lerps 0 to 1 giving red to magenta
+  return new THREE.Color(1, 0, t);
 }
 
 async function tryLoadEarthTexture(): Promise<THREE.Texture | null> {
@@ -64,7 +63,7 @@ export function Globe() {
         const t = e.nativeEvent.touches;
 
         if (t.length >= 2) {
-          // ── Pinch zoom ───────────────────────────────────────────────────
+          //pinch zoom
           const dx   = t[0].pageX - t[1].pageX;
           const dy   = t[0].pageY - t[1].pageY;
           const dist = Math.sqrt(dx * dx + dy * dy);
@@ -80,9 +79,9 @@ export function Globe() {
             );
           }
         } else if (t.length === 1) {
-          // ── Single-finger rotate ─────────────────────────────────────────
+          //single finger rotate
           if (isPinching.current) {
-            // Transition from pinch → drag: reset reference position
+            //reset reference on pinch to drag transition
             isPinching.current = false;
             lastPos.current = { x: t[0].pageX, y: t[0].pageY };
             return;
@@ -104,7 +103,7 @@ export function Globe() {
     }),
   ).current;
 
-  // ── GL context setup ─────────────────────────────────────────────────────
+  //gl context setup
   const onContextCreate = async (gl: ExpoWebGLRenderingContext) => {
     const W = gl.drawingBufferWidth;
     const H = gl.drawingBufferHeight;
@@ -131,7 +130,7 @@ export function Globe() {
     groupRef.current = group;
     scene.add(group);
 
-    // ── Earth sphere ──────────────────────────────────────────────────────
+    //earth sphere
     const earthTexture = await tryLoadEarthTexture();
     const earthMat = earthTexture
       ? new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 25, specular: 0x111111 })
@@ -139,7 +138,7 @@ export function Globe() {
 
     group.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R, 64, 64), earthMat));
 
-    // ── Lat/lon grid overlay ──────────────────────────────────────────────
+    //lat lon grid overlay
     group.add(
       new THREE.Mesh(
         new THREE.SphereGeometry(GLOBE_R + 0.002, 36, 18),
@@ -149,7 +148,7 @@ export function Globe() {
       ),
     );
 
-    // ── Atmosphere (fixed — does not rotate with globe) ───────────────────
+    //atmosphere fixed does not rotate with globe
     scene.add(
       new THREE.Mesh(
         new THREE.SphereGeometry(GLOBE_R * 1.08, 64, 64),
@@ -157,34 +156,35 @@ export function Globe() {
       ),
     );
 
-    // ── Stars ─────────────────────────────────────────────────────────────
+    //stars
     const starVerts: number[] = [];
-    for (let i = 0; i < 1800; i++) {
-      starVerts.push(
-        THREE.MathUtils.randFloatSpread(120),
-        THREE.MathUtils.randFloatSpread(120),
-        THREE.MathUtils.randFloatSpread(120),
-      );
+    while (starVerts.length < 1800 * 3) {
+      const x = THREE.MathUtils.randFloatSpread(120);
+      const y = THREE.MathUtils.randFloatSpread(120);
+      const z = THREE.MathUtils.randFloatSpread(120);
+      if (x * x + y * y + z * z > 100) { //skip stars within 10 units of origin
+        starVerts.push(x, y, z);
+      }
     }
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
     scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.12 })));
 
-    // ── Lights ────────────────────────────────────────────────────────────
+    //lights
     scene.add(new THREE.AmbientLight(0x334466, 0.9));
     const sun = new THREE.DirectionalLight(0xfff0dd, 1.6);
     sun.position.set(5, 3, 5);
     scene.add(sun);
 
-    // ── Derive which airports actually appear in flights ───────────────────
+    //find airports used in flights
     const usedAirports = new Set<string>();
     SAMPLE_FLIGHTS.forEach(({ from, to }) => {
       usedAirports.add(from);
       usedAirports.add(to);
     });
 
-    // ── Airport dots (only airports that have at least one flight) ─────────
-    const dotGeo = new THREE.SphereGeometry(0.009, 8, 8);
+    //airport dots
+    const dotGeo = new THREE.SphereGeometry(0.005, 8, 8);
     const dotMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
     usedAirports.forEach((code) => {
       const ap = AIRPORTS[code];
@@ -194,31 +194,35 @@ export function Globe() {
       group.add(dot);
     });
 
-    // ── Aggregate route frequency (count individual flight entries) ────────
+    //count how many times each route appears
     const routeCount = new Map<string, number>();
     SAMPLE_FLIGHTS.forEach(({ from, to }) => {
       const key = [from, to].sort().join('|');
       routeCount.set(key, (routeCount.get(key) ?? 0) + 1);
     });
 
-    // ── Arc lines ─────────────────────────────────────────────────────────
+    //arc lines
+    const counts = Array.from(routeCount.values());
+    const minCount = Math.min(...counts);
+    const maxCount = Math.max(...counts);
+
     routeCount.forEach((count, key) => {
       const [codeA, codeB] = key.split('|');
       const a1 = AIRPORTS[codeA];
       const a2 = AIRPORTS[codeB];
       if (!a1 || !a2) return;
 
-      const v1  = latLonToVec3(a1.lat, a1.lon, GLOBE_R);
-      const v2  = latLonToVec3(a2.lat, a2.lon, GLOBE_R);
+      const v1  = latLonToVec3(a1.lat, a1.lon, GLOBE_R + 0.012);
+      const v2  = latLonToVec3(a2.lat, a2.lon, GLOBE_R + 0.012);
       const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
       mid.normalize().multiplyScalar(GLOBE_R + v1.distanceTo(v2) * 0.35);
 
       const pts = new THREE.QuadraticBezierCurve3(v1, mid, v2).getPoints(80);
       const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: arcColor(count) })));
+      group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: arcColor(count, minCount, maxCount) })));
     });
 
-    // ── Render loop ───────────────────────────────────────────────────────
+    //render loop
     const render = () => {
       requestAnimationFrame(render);
       if (autoRotate.current) group.rotation.y += 0.0006;
