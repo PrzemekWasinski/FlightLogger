@@ -2,6 +2,9 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { Globe } from './components/Globe';
 import { BottomSheet } from './components/BottomSheet';
+import { initDb } from './data/db';
+
+initDb();
 
 export default function App() {
   return (

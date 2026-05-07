@@ -5,7 +5,7 @@ import { loadAsync } from 'expo-three';
 import * as THREE from 'three';
 import { EARTH_TEXTURE } from '../assets/earthTexture';
 import { AIRPORTS } from '../data/airports';
-import { SAMPLE_FLIGHTS } from '../data/sampleFlights';
+import { getAllFlights } from '../data/db';
 
 const GLOBE_R       = 1;
 const CAM_DEFAULT_Z = 2.8;
@@ -177,8 +177,9 @@ export function Globe() {
     scene.add(sun);
 
     //find airports used in flights
+    const flights = getAllFlights();
     const usedAirports = new Set<string>();
-    SAMPLE_FLIGHTS.forEach(({ from, to }) => {
+    flights.forEach(({ from, to }) => {
       usedAirports.add(from);
       usedAirports.add(to);
     });
@@ -196,7 +197,7 @@ export function Globe() {
 
     //count how many times each route appears
     const routeCount = new Map<string, number>();
-    SAMPLE_FLIGHTS.forEach(({ from, to }) => {
+    flights.forEach(({ from, to }) => {
       const key = [from, to].sort().join('|');
       routeCount.set(key, (routeCount.get(key) ?? 0) + 1);
     });
