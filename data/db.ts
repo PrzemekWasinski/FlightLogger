@@ -14,11 +14,7 @@ export interface Flight {
 //fra-jfk 15, ams-jfk 12, dxb-sin 10, lhr-nrt 9, sin-syd 8, doh-lhr 7
 //icn-lax 6, jfk-mia 5, lax-nrt 5, lhr-bom 4, gru-lhr 4, cdg-nrt 4
 //jfk-ord 3, mex-jfk 3, syd-lax 3
-const SEED: Flight[] = [
-  //lhr jfk 54 flights most common
-  { id:   1, from: 'LHR', to: 'JFK', airline: 'British Airways',   aircraft: 'Boeing 747-400',     date: '2018-02-14' },
-  
-];
+const SEED: Flight[] = [];
 
 const db = SQLite.openDatabaseSync('flightlogger.db');
 

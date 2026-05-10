@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View, PanResponder } from 'react-native';
 import { GLView, ExpoWebGLRenderingContext } from 'expo-gl';
 import { loadAsync } from 'expo-three';
@@ -37,9 +37,21 @@ async function tryLoadEarthTexture(): Promise<THREE.Texture | null> {
   }
 }
 
-export function Globe() {
-  const groupRef  = useRef<THREE.Group | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+interface GlobeProps {
+  refreshKey?: number;
+}
+
+export function Globe({ refreshKey = 0 }: GlobeProps) {
+  const groupRef    = useRef<THREE.Group | null>(null);
+  const cameraRef   = useRef<THREE.PerspectiveCamera | null>(null);
+  const rebuildRef  = useRef<(() => void) | null>(null);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    rebuildRef.current?.();
+  }, [refreshKey]);
+
   const autoRotate    = useRef(true);
   const lastPos       = useRef({ x: 0, y: 0 });
   const isPinching    = useRef(false);
@@ -176,52 +188,65 @@ export function Globe() {
     sun.position.set(5, 3, 5);
     scene.add(sun);
 
-    //find airports used in flights
-    const flights = getAllFlights();
-    const usedAirports = new Set<string>();
-    flights.forEach(({ from, to }) => {
-      usedAirports.add(from);
-      usedAirports.add(to);
-    });
+    //routes group is cleared and rebuilt whenever flights change
+    const routesGroup = new THREE.Group();
+    group.add(routesGroup);
 
-    //airport dots
-    const dotGeo = new THREE.SphereGeometry(0.005, 8, 8);
-    const dotMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
-    usedAirports.forEach((code) => {
-      const ap = AIRPORTS[code];
-      if (!ap) return;
-      const dot = new THREE.Mesh(dotGeo, dotMat);
-      dot.position.copy(latLonToVec3(ap.lat, ap.lon, GLOBE_R + 0.012));
-      group.add(dot);
-    });
+    function buildRoutes() {
+      //dispose old geometries and materials before clearing
+      routesGroup.children.slice().forEach(c => {
+        const obj = c as any;
+        obj.geometry?.dispose();
+        if (Array.isArray(obj.material)) obj.material.forEach((m: THREE.Material) => m.dispose());
+        else obj.material?.dispose();
+        routesGroup.remove(c);
+      });
 
-    //count how many times each route appears
-    const routeCount = new Map<string, number>();
-    flights.forEach(({ from, to }) => {
-      const key = [from, to].sort().join('|');
-      routeCount.set(key, (routeCount.get(key) ?? 0) + 1);
-    });
+      const flights = getAllFlights();
 
-    //arc lines
-    const counts = Array.from(routeCount.values());
-    const minCount = Math.min(...counts);
-    const maxCount = Math.max(...counts);
+      //airport dots
+      const usedAirports = new Set<string>();
+      flights.forEach(({ from, to }) => { usedAirports.add(from); usedAirports.add(to); });
+      const dotGeo = new THREE.SphereGeometry(0.005, 8, 8);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
+      usedAirports.forEach(code => {
+        const ap = AIRPORTS[code];
+        if (!ap) return;
+        const dot = new THREE.Mesh(dotGeo, dotMat);
+        dot.position.copy(latLonToVec3(ap.lat, ap.lon, GLOBE_R + 0.012));
+        routesGroup.add(dot);
+      });
 
-    routeCount.forEach((count, key) => {
-      const [codeA, codeB] = key.split('|');
-      const a1 = AIRPORTS[codeA];
-      const a2 = AIRPORTS[codeB];
-      if (!a1 || !a2) return;
+      //route frequency counts
+      const routeCount = new Map<string, number>();
+      flights.forEach(({ from, to }) => {
+        const key = [from, to].sort().join('|');
+        routeCount.set(key, (routeCount.get(key) ?? 0) + 1);
+      });
 
-      const v1  = latLonToVec3(a1.lat, a1.lon, GLOBE_R + 0.012);
-      const v2  = latLonToVec3(a2.lat, a2.lon, GLOBE_R + 0.012);
-      const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
-      mid.normalize().multiplyScalar(GLOBE_R + v1.distanceTo(v2) * 0.35);
+      //arc lines
+      const counts = Array.from(routeCount.values());
+      if (!counts.length) return;
+      const minCount = Math.min(...counts);
+      const maxCount = Math.max(...counts);
 
-      const pts = new THREE.QuadraticBezierCurve3(v1, mid, v2).getPoints(80);
-      const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: arcColor(count, minCount, maxCount) })));
-    });
+      routeCount.forEach((count, key) => {
+        const [codeA, codeB] = key.split('|');
+        const a1 = AIRPORTS[codeA];
+        const a2 = AIRPORTS[codeB];
+        if (!a1 || !a2) return;
+        const v1  = latLonToVec3(a1.lat, a1.lon, GLOBE_R + 0.012);
+        const v2  = latLonToVec3(a2.lat, a2.lon, GLOBE_R + 0.012);
+        const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
+        mid.normalize().multiplyScalar(GLOBE_R + v1.distanceTo(v2) * 0.35);
+        const pts = new THREE.QuadraticBezierCurve3(v1, mid, v2).getPoints(80);
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        routesGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: arcColor(count, minCount, maxCount) })));
+      });
+    }
+
+    rebuildRef.current = buildRoutes;
+    buildRoutes();
 
     //render loop
     const render = () => {

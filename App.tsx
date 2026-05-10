@@ -10,12 +10,15 @@ import { initDb } from './data/db';
 initDb();
 
 export default function App() {
-  const [addOpen,     setAddOpen]     = useState(false);
-  const [logbookOpen, setLogbookOpen] = useState(false);
+  const [addOpen,      setAddOpen]      = useState(false);
+  const [logbookOpen,  setLogbookOpen]  = useState(false);
+  const [refreshKey,   setRefreshKey]   = useState(0);
+
+  function bumpRefresh() { setRefreshKey(k => k + 1); }
 
   return (
     <View style={styles.root}>
-      <Globe />
+      <Globe refreshKey={refreshKey} />
       <BottomSheet hidden={addOpen || logbookOpen} />
 
       {/*hide buttons while any overlay is open*/}
@@ -35,8 +38,8 @@ export default function App() {
         </>
       )}
 
-      <AddFlightModal  visible={addOpen}     onClose={() => setAddOpen(false)} />
-      <LogbookModal    visible={logbookOpen} onClose={() => setLogbookOpen(false)} />
+      <AddFlightModal  visible={addOpen}     onClose={() => setAddOpen(false)}     onFlightChange={bumpRefresh} />
+      <LogbookModal    visible={logbookOpen} onClose={() => setLogbookOpen(false)} onFlightChange={bumpRefresh} />
       <StatusBar style="light" />
     </View>
   );

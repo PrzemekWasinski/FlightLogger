@@ -20,6 +20,7 @@ const HEADER_TOP = Platform.OS === 'ios' ? 55 : 35;
 interface Props {
   visible: boolean;
   onClose: () => void;
+  onFlightChange: () => void;
 }
 
 // ─── flight row ────────────────────────────────────────────────────────────────
@@ -65,7 +66,7 @@ function RowGap() { return <View style={{ height: 8 }} />; }
 
 // ─── logbook modal ─────────────────────────────────────────────────────────────
 
-export function LogbookModal({ visible, onClose }: Props) {
+export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
 
   const [flights,       setFlights]       = useState<Flight[]>([]);
@@ -115,11 +116,13 @@ export function LogbookModal({ visible, onClose }: Props) {
     Keyboard.dismiss();
     setEditingFlight(null);
     refresh();
+    onFlightChange();
   }
 
   function handleDelete(id: number) {
     deleteFlight(id);
     refresh();
+    onFlightChange();
   }
 
   return (

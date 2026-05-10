@@ -4,7 +4,6 @@ import {
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -18,9 +17,10 @@ const SCREEN_H = Dimensions.get('window').height;
 interface Props {
   visible: boolean;
   onClose: () => void;
+  onFlightChange: () => void;
 }
 
-export function AddFlightModal({ visible, onClose }: Props) {
+export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
 
   const [aircraft,  setAircraft]  = useState('');
@@ -55,6 +55,7 @@ export function AddFlightModal({ visible, onClose }: Props) {
     setDeparture('');
     setArrival('');
     setAirline('');
+    onFlightChange();
     handleClose();
   }
 
@@ -64,10 +65,10 @@ export function AddFlightModal({ visible, onClose }: Props) {
       //box-none lets globe touches pass through the transparent area above the sheet
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={s.root} pointerEvents="box-none">
-        {/*ios only — padding nudges sheet above keyboard without layout thrash*/}
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={s.sheet}>
+      {/*kav is flex:1 — the spacer above the sheet absorbs the keyboard height*/}
+      <KeyboardAvoidingView style={s.kav} behavior="padding" pointerEvents="box-none">
+        <View style={s.spacer} pointerEvents="none" />
+        <View style={s.sheet}>
             <View style={s.titleRow}>
               <Text style={s.title}>New Flight</Text>
               <TouchableOpacity onPress={handleClose} style={s.closeBtn}>
@@ -142,7 +143,6 @@ export function AddFlightModal({ visible, onClose }: Props) {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </View>
     </Animated.View>
   );
 }
@@ -155,9 +155,11 @@ const s = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  root: {
+  kav: {
     flex: 1,
-    justifyContent: 'flex-end',
+  },
+  spacer: {
+    flex: 1,
   },
   sheet: {
     backgroundColor: '#111827',

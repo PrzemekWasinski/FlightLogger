@@ -42,4 +42,6 @@ yarn-error.*
 
 TODO.md
 
-assets/earth.jpg
+assets/
+
+/data/airports.ts

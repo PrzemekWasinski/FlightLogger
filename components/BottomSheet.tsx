@@ -191,7 +191,7 @@ const card = StyleSheet.create({
   },
   label: {
     width: '100%',
-    color: '#6b7280',
+    color: '#f3f4f6',
     fontSize: 11,
     textAlign: 'center',
   },
