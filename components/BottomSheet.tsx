@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, PanResponder, StyleSheet, Text, View } from 'react-native';
 import { getAllFlights, Flight } from '../data/db';
 
@@ -50,10 +50,14 @@ function topAirport(flights: Flight[]): string {
   return best;
 }
 
-const flights      = getAllFlights();
-const topAircraft  = topByCount(flights, f => f.aircraft);
-const topAirportV  = topAirport(flights);
-const topAirlineV  = topByCount(flights, f => f.airline);
+function computeStats() {
+  const flights = getAllFlights();
+  return {
+    aircraft: topByCount(flights, f => f.aircraft),
+    airport:  topAirport(flights),
+    airline:  topByCount(flights, f => f.airline),
+  };
+}
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -65,15 +69,32 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function BottomSheet() {
+interface BottomSheetProps {
+  hidden?: boolean;
+}
+
+export function BottomSheet({ hidden = false }: BottomSheetProps) {
   const translateY = useRef(new Animated.Value(SNAP_BOTTOM)).current;
   const liveY      = useRef(SNAP_BOTTOM);
   const startY     = useRef(SNAP_BOTTOM);
+  const [stats, setStats] = useState(computeStats);
 
   useEffect(() => {
     const id = translateY.addListener(({ value }) => { liveY.current = value; });
     return () => translateY.removeListener(id);
   }, []);
+
+  useEffect(() => {
+    Animated.spring(translateY, {
+      toValue: hidden ? SCREEN_H : SNAP_BOTTOM,
+      useNativeDriver: false,
+      damping: 22,
+      stiffness: 350,
+      mass: 0.7,
+    }).start();
+    //refresh stats whenever the sheet comes back into view
+    if (!hidden) setStats(computeStats());
+  }, [hidden]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -115,9 +136,9 @@ export function BottomSheet() {
       </View>
 
       <View style={styles.statsRow}>
-        <StatCard label="Top Aircraft" value={topAircraft} />
-        <StatCard label="Top Airport"  value={topAirportV} />
-        <StatCard label="Top Airline"  value={topAirlineV} />
+        <StatCard label="Top Aircraft" value={stats.aircraft} />
+        <StatCard label="Top Airport"  value={stats.airport} />
+        <StatCard label="Top Airline"  value={stats.airline} />
       </View>
     </Animated.View>
   );
