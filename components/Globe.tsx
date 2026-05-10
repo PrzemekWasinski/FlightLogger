@@ -8,9 +8,9 @@ import { AIRPORTS } from '../data/airports';
 import { getAllFlights } from '../data/db';
 
 const GLOBE_R       = 1;
-const CAM_DEFAULT_Z = 2.8;
+const CAM_DEFAULT_Z = 4.2;
 const CAM_MIN_Z     = 1.4;
-const CAM_MAX_Z     = 5.5;
+const CAM_MAX_Z     = 7.0;
 
 function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
   const phi   = (90 - lat) * (Math.PI / 180);
@@ -234,8 +234,18 @@ export function Globe() {
   };
 
   return (
-    <View style={StyleSheet.absoluteFill} {...panResponder.panHandlers}>
+    <View style={styles.container} {...panResponder.panHandlers}>
       <GLView style={StyleSheet.absoluteFill} onContextCreate={onContextCreate} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 195, //stops at the sheet peek height so globe is centred above it
+  },
+});
