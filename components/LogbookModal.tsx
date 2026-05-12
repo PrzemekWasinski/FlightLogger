@@ -3,6 +3,7 @@ import {
   Animated,
   Dimensions,
   FlatList,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +16,31 @@ import {
 import { AIRPORTS } from '../data/airports';
 import { DatePickerField } from './DatePickerField';
 import { getAllFlights, deleteFlight, updateFlight, Flight } from '../data/db';
+
+//strip non-alphanumeric so "777-300ER" → "777300ER", then check if filename appears in it
+const AIRCRAFT_IMAGES: { key: string; src: ReturnType<typeof require> }[] = [
+  { key: 'A380', src: require('../assets/aircraft/A380.png') },
+  { key: 'A350', src: require('../assets/aircraft/A350.png') },
+  { key: 'A340', src: require('../assets/aircraft/A340.png') },
+  { key: 'A330', src: require('../assets/aircraft/A330.png') },
+  { key: 'A320', src: require('../assets/aircraft/A320.png') },
+  { key: '787',  src: require('../assets/aircraft/787.png') },
+  { key: '777',  src: require('../assets/aircraft/777.png') },
+  { key: '767',  src: require('../assets/aircraft/767.png') },
+  { key: '757',  src: require('../assets/aircraft/757.png') },
+  { key: '747',  src: require('../assets/aircraft/747.png') },
+  { key: '737',  src: require('../assets/aircraft/737.png') },
+  { key: 'ATR',  src: require('../assets/aircraft/ATR.png') },
+];
+
+function getAircraftImage(aircraft?: string | null) {
+  if (!aircraft) return null;
+  const stripped = aircraft.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  for (const { key, src } of AIRCRAFT_IMAGES) {
+    if (stripped.includes(key.toUpperCase())) return src;
+  }
+  return require('../assets/aircraft/A320.png');
+}
 
 interface Suggestion {
   code: string;
@@ -53,30 +79,43 @@ interface RowProps {
 }
 
 function FlightRow({ item, onEdit, onDelete }: RowProps) {
+  const aircraftImg = getAircraftImage(item.aircraft);
   return (
     <View style={s.card}>
-      <View style={s.routeRow}>
-        <Text style={s.iata}>{item.from}</Text>
-        <View style={s.routeMid}>
-          <View style={s.routeLine} />
-          <Text style={s.planeTxt}>✈</Text>
-          <View style={s.routeLine} />
+      <View style={s.cardInner}>
+        {/*aircraft icon column*/}
+        <View style={s.iconCol}>
+          {aircraftImg
+            ? <Image source={aircraftImg} style={s.aircraftIcon} resizeMode="contain" />
+            : <View style={s.aircraftIconPlaceholder} />}
         </View>
-        <Text style={s.iata}>{item.to}</Text>
-      </View>
 
-      {item.aircraft ? <Text style={s.infoLine}>{item.aircraft}</Text> : null}
-      {item.airline  ? <Text style={s.infoLine}>{item.airline}</Text>  : null}
+        {/*content column*/}
+        <View style={s.contentCol}>
+          <View style={s.routeRow}>
+            <Text style={s.iata}>{item.from}</Text>
+            <View style={s.routeMid}>
+              <View style={s.routeLine} />
+              <Text style={s.planeTxt}>✈</Text>
+              <View style={s.routeLine} />
+            </View>
+            <Text style={s.iata}>{item.to}</Text>
+          </View>
 
-      <View style={s.cardBottom}>
-        <Text style={s.date}>{item.date ?? '—'}</Text>
-        <View style={s.actions}>
-          <TouchableOpacity onPress={onEdit} style={s.actionBtn}>
-            <Text style={s.editTxt}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onDelete} style={s.actionBtn}>
-            <Text style={s.deleteTxt}>Delete</Text>
-          </TouchableOpacity>
+          {item.aircraft ? <Text style={s.infoLine}>{item.aircraft}</Text> : null}
+          {item.airline  ? <Text style={s.infoLine}>{item.airline}</Text>  : null}
+
+          <View style={s.cardBottom}>
+            <Text style={s.date}>{item.date ?? '—'}</Text>
+            <View style={s.actions}>
+              <TouchableOpacity onPress={onEdit} style={s.actionBtn}>
+                <Text style={s.editTxt}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onDelete} style={s.actionBtn}>
+                <Text style={s.deleteTxt}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
     </View>
@@ -375,6 +414,27 @@ const s = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: 12,
     padding: 14,
+  },
+  cardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconCol: {
+    width: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  aircraftIcon: {
+    width: 48,
+    height: 48,
+  },
+  aircraftIconPlaceholder: {
+    width: 48,
+    height: 48,
+  },
+  contentCol: {
+    flex: 1,
   },
   routeRow: {
     flexDirection: 'row',

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  Image,
   PanResponder,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,30 @@ import { AIRPORTS } from '../data/airports';
 import { getAllFlights, Flight } from '../data/db';
 
 const { height: SCREEN_H } = Dimensions.get('window');
+
+const AIRCRAFT_IMAGE_MAP: [string, any][] = [
+  ['737',  require('../assets/aircraft/737.png')],
+  ['747',  require('../assets/aircraft/747.png')],
+  ['757',  require('../assets/aircraft/757.png')],
+  ['767',  require('../assets/aircraft/767.png')],
+  ['777',  require('../assets/aircraft/777.png')],
+  ['787',  require('../assets/aircraft/787.png')],
+  ['a320', require('../assets/aircraft/A320.png')],
+  ['a330', require('../assets/aircraft/A330.png')],
+  ['a340', require('../assets/aircraft/A340.png')],
+  ['a350', require('../assets/aircraft/A350.png')],
+  ['a380', require('../assets/aircraft/A380.png')],
+  ['atr',  require('../assets/aircraft/ATR.png')],
+];
+
+function getAircraftImage(name: string): any {
+  if (!name || name === '—') return null;
+  const stripped = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (const [pattern, src] of AIRCRAFT_IMAGE_MAP) {
+    if (stripped.includes(pattern)) return src;
+  }
+  return require('../assets/aircraft/A320.png');
+}
 
 const PEEK_H      = 305;
 const SNAP_TOP    = 0;
@@ -160,11 +185,14 @@ function computeStats() {
 
 // ─── sub-components ────────────────────────────────────────────────────────────
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value, imageSource }: { label: string; value: string; imageSource?: any }) {
   return (
     <View style={card.container}>
       <Text style={card.label}>{label}</Text>
-      <View style={card.placeholder} />
+      {imageSource
+        ? <Image source={imageSource} style={card.image} resizeMode="contain" />
+        : <View style={card.placeholder} />
+      }
       <Text style={card.value} numberOfLines={2}>{value}</Text>
     </View>
   );
@@ -314,7 +342,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
 
         {/*stat cards row 1 — top aircraft, airport, airline*/}
         <View style={styles.cardRow}>
-          <StatCard label="Top Aircraft" value={stats.topAircraft} />
+          <StatCard label="Top Aircraft" value={stats.topAircraft} imageSource={getAircraftImage(stats.topAircraft)} />
           <StatCard label="Top Airport"  value={stats.topAirport} />
           <StatCard label="Top Airline"  value={stats.topAirline} />
         </View>
@@ -446,6 +474,7 @@ const card = StyleSheet.create({
   },
   label: { width: '100%', color: '#f3f4f6', fontSize: 11, textAlign: 'center' },
   placeholder: { width: '100%', height: 135, backgroundColor: '#243147', borderRadius: 6 },
+  image: { width: '100%', height: 135 },
   value: { color: '#f3f4f6', fontSize: 12, fontWeight: '600', textAlign: 'center' },
 });
 

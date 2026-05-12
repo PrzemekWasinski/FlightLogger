@@ -22,11 +22,7 @@ function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
   );
 }
 
-function arcColor(count: number, min: number, max: number): THREE.Color {
-  const t = max > min ? (count - min) / (max - min) : 0;
-  //r=1 g=0 b lerps 0 to 1 giving red to magenta
-  return new THREE.Color(1, 0, t);
-}
+const ARC_COLOR = new THREE.Color(1, 0, 0);
 
 async function tryLoadEarthTexture(): Promise<THREE.Texture | null> {
   if (!EARTH_TEXTURE) return null;
@@ -225,12 +221,9 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
       });
 
       //arc lines
-      const counts = Array.from(routeCount.values());
-      if (!counts.length) return;
-      const minCount = Math.min(...counts);
-      const maxCount = Math.max(...counts);
+      if (!routeCount.size) return;
 
-      routeCount.forEach((count, key) => {
+      routeCount.forEach((_count, key) => {
         const [codeA, codeB] = key.split('|');
         const a1 = AIRPORTS[codeA];
         const a2 = AIRPORTS[codeB];
@@ -241,7 +234,7 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
         mid.normalize().multiplyScalar(GLOBE_R + v1.distanceTo(v2) * 0.35);
         const pts = new THREE.QuadraticBezierCurve3(v1, mid, v2).getPoints(80);
         const geo = new THREE.BufferGeometry().setFromPoints(pts);
-        routesGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: arcColor(count, minCount, maxCount) })));
+        routesGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: ARC_COLOR })));
       });
     }
 
