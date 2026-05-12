@@ -12,7 +12,28 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { AIRPORTS } from '../data/airports';
+import { DatePickerField } from './DatePickerField';
 import { getAllFlights, deleteFlight, updateFlight, Flight } from '../data/db';
+
+interface Suggestion {
+  code: string;
+  name: string;
+}
+
+function searchAirports(query: string): Suggestion[] {
+  if (query.length < 2) return [];
+  const q     = query.toLowerCase();
+  const upper = query.toUpperCase();
+  const out: Suggestion[] = [];
+  for (const [code, ap] of Object.entries(AIRPORTS)) {
+    if (code.startsWith(upper) || ap.name.toLowerCase().includes(q)) {
+      out.push({ code, name: ap.name });
+    }
+    if (out.length >= 5) break;
+  }
+  return out;
+}
 
 const SCREEN_H   = Dimensions.get('window').height;
 const HEADER_TOP = Platform.OS === 'ios' ? 55 : 35;
@@ -69,12 +90,16 @@ function RowGap() { return <View style={{ height: 8 }} />; }
 export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
 
-  const [flights,       setFlights]       = useState<Flight[]>([]);
-  const [editingFlight, setEditingFlight] = useState<Flight | null>(null);
-  const [editFrom,      setEditFrom]      = useState('');
-  const [editTo,        setEditTo]        = useState('');
-  const [editAircraft,  setEditAircraft]  = useState('');
-  const [editAirline,   setEditAirline]   = useState('');
+  const [flights,         setFlights]         = useState<Flight[]>([]);
+  const [editingFlight,   setEditingFlight]   = useState<Flight | null>(null);
+  const [editFrom,        setEditFrom]        = useState('');
+  const [editTo,          setEditTo]          = useState('');
+  const [editAircraft,    setEditAircraft]    = useState('');
+  const [editAirline,     setEditAirline]     = useState('');
+  const [editDate,        setEditDate]        = useState('');
+  const [editActiveSugs,  setEditActiveSugs]  = useState<Suggestion[]>([]);
+  const [editActiveField, setEditActiveField] = useState<'from' | 'to' | null>(null);
+  const [editRouteH,      setEditRouteH]      = useState(0);
 
   useEffect(() => {
     Animated.spring(translateY, {
@@ -95,7 +120,10 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     setEditFrom(flight.from);
     setEditTo(flight.to);
     setEditAircraft(flight.aircraft ?? '');
-    setEditAirline(flight.airline  ?? '');
+    setEditAirline(flight.airline   ?? '');
+    setEditDate(flight.date         ?? '');
+    setEditActiveSugs([]);
+    setEditActiveField(null);
     setEditingFlight(flight);
   }
 
@@ -112,11 +140,36 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       editTo.trim().toUpperCase(),
       editAirline.trim()  || undefined,
       editAircraft.trim() || undefined,
+      editDate.trim()     || undefined,
     );
     Keyboard.dismiss();
     setEditingFlight(null);
     refresh();
     onFlightChange();
+  }
+
+  function onEditFromChange(text: string) {
+    setEditFrom(text);
+    setEditActiveField('from');
+    setEditActiveSugs(searchAirports(text));
+  }
+
+  function onEditToChange(text: string) {
+    setEditTo(text);
+    setEditActiveField('to');
+    setEditActiveSugs(searchAirports(text));
+  }
+
+  function selectEditSuggestion(code: string) {
+    if (editActiveField === 'from') setEditFrom(code);
+    else if (editActiveField === 'to') setEditTo(code);
+    setEditActiveSugs([]);
+    setEditActiveField(null);
+  }
+
+  function onEditInputBlur() {
+    //delay lets the suggestion tap register before the list disappears
+    setTimeout(() => setEditActiveSugs([]), 150);
   }
 
   function handleDelete(id: number) {
@@ -168,38 +221,59 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                 </TouchableOpacity>
               </View>
 
-              {/*route inputs*/}
-              <View style={s.routeCard}>
-                <View style={s.routeSide}>
-                  <Text style={s.routeTag}>FROM</Text>
-                  <TextInput
-                    style={s.iataInput}
-                    value={editFrom}
-                    onChangeText={setEditFrom}
-                    placeholder="LHR"
-                    placeholderTextColor="#253548"
-                    autoCapitalize="characters"
-                    maxLength={4}
-                  />
+              {/*route inputs — wrapper lifts suggestions above siblings via zIndex*/}
+              <View style={s.routeWrapper}>
+                <View style={s.routeCard} onLayout={e => setEditRouteH(e.nativeEvent.layout.height)}>
+                  <View style={s.routeSide}>
+                    <Text style={s.routeTag}>FROM</Text>
+                    <TextInput
+                      style={[s.iataInput, editFrom.length > 4 && s.iataInputSearch]}
+                      value={editFrom}
+                      onChangeText={onEditFromChange}
+                      onFocus={() => { setEditActiveField('from'); setEditActiveSugs(searchAirports(editFrom)); }}
+                      onBlur={onEditInputBlur}
+                      placeholder="LHR"
+                      placeholderTextColor="#253548"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  <View style={s.routeMidEdit}>
+                    <View style={s.routeLineEdit} />
+                    <Text style={s.planeTxtEdit}>✈</Text>
+                    <View style={s.routeLineEdit} />
+                  </View>
+                  <View style={[s.routeSide, s.routeSideRight]}>
+                    <Text style={[s.routeTag, s.routeTagRight]}>TO</Text>
+                    <TextInput
+                      style={[s.iataInput, s.iataInputRight, editTo.length > 4 && s.iataInputSearch]}
+                      value={editTo}
+                      onChangeText={onEditToChange}
+                      onFocus={() => { setEditActiveField('to'); setEditActiveSugs(searchAirports(editTo)); }}
+                      onBlur={onEditInputBlur}
+                      placeholder="JFK"
+                      placeholderTextColor="#253548"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      textAlign="right"
+                    />
+                  </View>
                 </View>
-                <View style={s.routeMidEdit}>
-                  <View style={s.routeLineEdit} />
-                  <Text style={s.planeTxtEdit}>✈</Text>
-                  <View style={s.routeLineEdit} />
-                </View>
-                <View style={[s.routeSide, s.routeSideRight]}>
-                  <Text style={[s.routeTag, s.routeTagRight]}>TO</Text>
-                  <TextInput
-                    style={[s.iataInput, s.iataInputRight]}
-                    value={editTo}
-                    onChangeText={setEditTo}
-                    placeholder="JFK"
-                    placeholderTextColor="#253548"
-                    autoCapitalize="characters"
-                    maxLength={4}
-                    textAlign="right"
-                  />
-                </View>
+
+                {/*suggestion dropdown — absolute so it overlays the detail card below*/}
+                {editActiveSugs.length > 0 && (
+                  <View style={[s.sugList, { top: editRouteH }]}>
+                    {editActiveSugs.map((sug, idx) => (
+                      <React.Fragment key={sug.code}>
+                        {idx > 0 && <View style={s.sugRule} />}
+                        <TouchableOpacity style={s.sugItem} onPress={() => selectEditSuggestion(sug.code)}>
+                          <Text style={s.sugCode}>{sug.code}</Text>
+                          <Text style={s.sugName} numberOfLines={1}>{sug.name}</Text>
+                        </TouchableOpacity>
+                      </React.Fragment>
+                    ))}
+                  </View>
+                )}
               </View>
 
               {/*detail inputs*/}
@@ -225,6 +299,14 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                     placeholderTextColor="#253548"
                   />
                 </View>
+                <View style={s.detailRule} />
+                <DatePickerField
+                  value={editDate}
+                  onChange={setEditDate}
+                  rowStyle={s.detailRow}
+                  tagStyle={s.detailTag}
+                  inputStyle={s.detailInput}
+                />
               </View>
 
               <TouchableOpacity style={s.saveBtn} onPress={saveEdit}>
@@ -388,7 +470,11 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
 
-  //route card (edit)
+  //route card (edit) — wrapper lifts suggestions above siblings via zIndex
+  routeWrapper: {
+    zIndex: 10,
+    marginBottom: 10,
+  },
   routeCard: {
     backgroundColor: '#1a2535',
     borderRadius: 16,
@@ -416,6 +502,45 @@ const s = StyleSheet.create({
     minWidth: 80,
   },
   iataInputRight: { textAlign: 'right' },
+  iataInputSearch: {
+    fontSize: 15,
+    fontWeight: '500',
+    letterSpacing: 0,
+  },
+
+  //suggestion dropdown — floats over detail card, no layout impact
+  sugList: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: '#1a2535',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  sugItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  sugCode: {
+    color: '#60a5fa',
+    fontSize: 13,
+    fontWeight: '700',
+    width: 36,
+  },
+  sugName: {
+    color: '#f3f4f6',
+    fontSize: 13,
+    flex: 1,
+  },
+  sugRule: {
+    height: 1,
+    backgroundColor: '#111827',
+    marginLeft: 16,
+  },
   routeMidEdit: {
     alignItems: 'center',
     paddingHorizontal: 10,

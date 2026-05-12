@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { AIRPORTS } from './airports';
 
 export interface Flight {
   id: number;
@@ -8,15 +9,29 @@ export interface Flight {
   aircraft?: string;
   registration?: string;
   date?: string;
+  distance_km?: number;
 }
 
-//route frequencies lhr-jfk 54, lhr-dxb 32, jfk-lax 28, lhr-sin 20, cdg-jfk 18
-//fra-jfk 15, ams-jfk 12, dxb-sin 10, lhr-nrt 9, sin-syd 8, doh-lhr 7
-//icn-lax 6, jfk-mia 5, lax-nrt 5, lhr-bom 4, gru-lhr 4, cdg-nrt 4
-//jfk-ord 3, mex-jfk 3, syd-lax 3
 const SEED: Flight[] = [];
 
 const db = SQLite.openDatabaseSync('flightlogger.db');
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R    = 6371;
+  const toRad = (d: number) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+function calcDistance(from: string, to: string): number | null {
+  const a = AIRPORTS[from];
+  const b = AIRPORTS[to];
+  if (!a || !b) return null;
+  return haversineKm(a.lat, a.lon, b.lat, b.lon);
+}
 
 export function initDb(): void {
   db.execSync(`
@@ -27,9 +42,13 @@ export function initDb(): void {
       airline      TEXT,
       aircraft     TEXT,
       registration TEXT,
-      date         TEXT
+      date         TEXT,
+      distance_km  REAL
     );
   `);
+  //add distance_km to existing dbs that predate this column
+  try { db.execSync('ALTER TABLE flights ADD COLUMN distance_km REAL'); } catch {}
+
   const row = db.getFirstSync<{ c: number }>('SELECT COUNT(*) AS c FROM flights');
   if (!row || row.c === 0) {
     db.withTransactionSync(() => {
@@ -43,10 +62,10 @@ export function initDb(): void {
   }
 }
 
-export function insertFlight(from: string, to: string, airline?: string, aircraft?: string): void {
+export function insertFlight(from: string, to: string, airline?: string, aircraft?: string, date?: string): void {
   db.runSync(
-    'INSERT INTO flights (origin, destination, airline, aircraft) VALUES (?, ?, ?, ?)',
-    from, to, airline ?? null, aircraft ?? null,
+    'INSERT INTO flights (origin, destination, airline, aircraft, date, distance_km) VALUES (?, ?, ?, ?, ?, ?)',
+    from, to, airline ?? null, aircraft ?? null, date ?? null, calcDistance(from, to),
   );
 }
 
@@ -54,16 +73,16 @@ export function deleteFlight(id: number): void {
   db.runSync('DELETE FROM flights WHERE id = ?', id);
 }
 
-export function updateFlight(id: number, from: string, to: string, airline?: string, aircraft?: string): void {
+export function updateFlight(id: number, from: string, to: string, airline?: string, aircraft?: string, date?: string): void {
   db.runSync(
-    'UPDATE flights SET origin = ?, destination = ?, airline = ?, aircraft = ? WHERE id = ?',
-    from, to, airline ?? null, aircraft ?? null, id,
+    'UPDATE flights SET origin = ?, destination = ?, airline = ?, aircraft = ?, date = ?, distance_km = ? WHERE id = ?',
+    from, to, airline ?? null, aircraft ?? null, date ?? null, calcDistance(from, to), id,
   );
 }
 
 export function getAllFlights(): Flight[] {
   return db
-    .getAllSync<{ id: number; origin: string; destination: string; airline: string | null; aircraft: string | null; registration: string | null; date: string | null }>
+    .getAllSync<{ id: number; origin: string; destination: string; airline: string | null; aircraft: string | null; registration: string | null; date: string | null; distance_km: number | null }>
     ('SELECT * FROM flights ORDER BY id')
     .map(r => ({
       id:           r.id,
@@ -73,5 +92,6 @@ export function getAllFlights(): Flight[] {
       aircraft:     r.aircraft     ?? undefined,
       registration: r.registration ?? undefined,
       date:         r.date         ?? undefined,
+      distance_km:  r.distance_km  ?? undefined,
     }));
 }
