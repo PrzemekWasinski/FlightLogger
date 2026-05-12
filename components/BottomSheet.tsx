@@ -38,6 +38,19 @@ function getAircraftImage(name: string): any {
   return require('../assets/aircraft/A320.png');
 }
 
+const AIRLINE_IMAGE_MAP: [string, any][] = [
+  ['ryanair', require('../assets/airlines/ryanair.png')],
+];
+
+function getAirlineImage(name: string): any {
+  if (!name || name === '—') return null;
+  const stripped = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (const [pattern, src] of AIRLINE_IMAGE_MAP) {
+    if (stripped.includes(pattern)) return src;
+  }
+  return null;
+}
+
 const PEEK_H      = 305;
 const SNAP_TOP    = 0;
 const SNAP_BOTTOM = SCREEN_H - PEEK_H;
@@ -146,12 +159,20 @@ function computeStats() {
     value: weekdayCount.get(i) ?? 0,
   }));
 
-  const topRouteEntry = topN(routeCount, 1)[0];
-  const topManufEntry = topN(manufacturerCount, 1)[0];
-  const longestKm     = longestFlight?.distance_km ? Math.round(longestFlight.distance_km).toLocaleString() : null;
+  const topRouteEntry    = topN(routeCount,       1)[0];
+  const topManufEntry    = topN(manufacturerCount, 1)[0];
+  const topAircraftEntry = topN(aircraftCount,     1)[0];
+  const topAirportEntry  = topN(airportCount,      1)[0];
+  const topAirlineEntry  = topN(airlineCount,      1)[0];
+  const longestKm        = longestFlight?.distance_km ? Math.round(longestFlight.distance_km).toLocaleString() : null;
 
   const kmTotal = Math.round(totalKm);
   const kmStr   = kmTotal >= 1000 ? (kmTotal / 1000).toFixed(1) + 'k' : String(kmTotal);
+
+  const topAirportCode = topAirportEntry?.label ?? '—';
+  const topAirportFullName = topAirportEntry
+    ? (AIRPORTS[topAirportEntry.label]?.name ?? topAirportEntry.label)
+    : '—';
 
   return {
     flightCount:     flights.length,
@@ -163,11 +184,13 @@ function computeStats() {
     uniqueAirports:  airportSet.size,
     uniqueRoutes:    routeCount.size,
 
-    topAircraft:     topN(aircraftCount, 1)[0]?.label ?? '—',
-    topAirport:      topN(airportCount,  1)[0]?.label ?? '—',
-    topAirline:      topN(airlineCount,  1)[0]?.label ?? '—',
-    topRoute:        topRouteEntry ? `${topRouteEntry.label}\n×${topRouteEntry.value}` : '—',
-    topManufacturer: topManufEntry?.label ?? '—',
+    topAircraft:     topAircraftEntry?.label ?? '—',
+    topAirportCode,
+    topAirport:      topAirportEntry  ? topAirportFullName : '—',
+    topAirlineRaw:   topAirlineEntry?.label ?? '—',
+    topAirline:      topAirlineEntry?.label ?? '—',
+    topRoute:        topRouteEntry    ? `${topRouteEntry.label}\n×${topRouteEntry.value}`          : '—',
+    topManufacturer: topManufEntry    ? `${topManufEntry.label}\n×${topManufEntry.value}`          : '—',
     longestFlight:   longestFlight
       ? `${longestFlight.from} → ${longestFlight.to}${longestKm ? '\n' + longestKm + ' km' : ''}`
       : '—',
@@ -185,15 +208,27 @@ function computeStats() {
 
 // ─── sub-components ────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, imageSource }: { label: string; value: string; imageSource?: any }) {
+function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel }: { label: string; value: string; imageSource?: any; noImage?: boolean; borderedImage?: boolean; codeLabel?: string }) {
   return (
     <View style={card.container}>
       <Text style={card.label}>{label}</Text>
-      {imageSource
-        ? <Image source={imageSource} style={card.image} resizeMode="contain" />
-        : <View style={card.placeholder} />
+      {codeLabel
+        ? <View style={card.codeBox}><Text style={card.codeText}>{codeLabel}</Text></View>
+        : !noImage && (imageSource
+          ? borderedImage
+            ? <View style={card.imageBorder}><Image source={imageSource} style={card.image} resizeMode="contain" /></View>
+            : <Image source={imageSource} style={card.image} resizeMode="contain" />
+          : <View style={card.placeholder} />
+        )
       }
-      <Text style={card.value} numberOfLines={2}>{value}</Text>
+      {value.includes('\n')
+        ? <View style={card.valueLines}>
+            {value.split('\n').map((line, i) => (
+              <Text key={i} style={card.value}>{line}</Text>
+            ))}
+          </View>
+        : <Text style={card.value}>{value}</Text>
+      }
     </View>
   );
 }
@@ -343,15 +378,15 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         {/*stat cards row 1 — top aircraft, airport, airline*/}
         <View style={styles.cardRow}>
           <StatCard label="Top Aircraft" value={stats.topAircraft} imageSource={getAircraftImage(stats.topAircraft)} />
-          <StatCard label="Top Airport"  value={stats.topAirport} />
-          <StatCard label="Top Airline"  value={stats.topAirline} />
+          <StatCard label="Top Airport"  value={stats.topAirport}  codeLabel={stats.topAirportCode} />
+          <StatCard label="Top Airline"  value={stats.topAirline}  imageSource={getAirlineImage(stats.topAirlineRaw)} borderedImage />
         </View>
 
         {/*stat cards row 2 — top route, manufacturer, longest flight*/}
         <View style={[styles.cardRow, { marginTop: 20 }]}>
-          <StatCard label="Top Route"        value={stats.topRoute} />
-          <StatCard label="Top Manufacturer" value={stats.topManufacturer} />
-          <StatCard label="Longest Flight"   value={stats.longestFlight} />
+          <StatCard label="Top Route"        value={stats.topRoute}        noImage />
+          <StatCard label="Top Manufacturer" value={stats.topManufacturer} noImage />
+          <StatCard label="Longest Flight"   value={stats.longestFlight}   noImage />
         </View>
 
         {/*counter grid — unique totals*/}
@@ -472,10 +507,14 @@ const card = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  label: { width: '100%', color: '#f3f4f6', fontSize: 11, textAlign: 'center' },
+  label: { width: '100%', color: '#4b5563', fontSize: 11, textAlign: 'center' },
   placeholder: { width: '100%', height: 135, backgroundColor: '#243147', borderRadius: 6 },
   image: { width: '100%', height: 135 },
+  imageBorder: { width: '100%', borderWidth: 4, borderColor: '#1a2535', borderRadius: 8, overflow: 'hidden' },
+  codeBox:  { width: '100%', height: 135, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  codeText: { color: '#f3f4f6', fontSize: 28, fontWeight: '700', letterSpacing: 3 },
   value: { color: '#f3f4f6', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  valueLines: { width: '100%', gap: 8, alignItems: 'center' },
 });
 
 const counter = StyleSheet.create({
