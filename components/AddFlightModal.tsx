@@ -4,6 +4,7 @@ import {
   Dimensions,
   Keyboard,
   KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -11,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { AIRPORTS } from '../data/airports';
+import { AIRLINES } from '../data/airlines';
 import { insertFlight } from '../data/db';
 import { DatePickerField } from './DatePickerField';
 
@@ -41,6 +43,21 @@ function searchAirports(query: string): Suggestion[] {
   return out;
 }
 
+interface AirlineSuggestion { name: string; icao: string; }
+
+function searchAirlines(query: string): AirlineSuggestion[] {
+  if (query.length < 2) return [];
+  const q = query.toLowerCase();
+  const out: AirlineSuggestion[] = [];
+  for (const a of AIRLINES) {
+    if (a.name.toLowerCase().includes(q)) {
+      out.push({ name: a.name, icao: a.icao });
+      if (out.length >= 5) break;
+    }
+  }
+  return out;
+}
+
 export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
 
@@ -49,9 +66,11 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
   const [aircraft,    setAircraft]    = useState('');
   const [airline,     setAirline]     = useState('');
   const [date,        setDate]        = useState('');
-  const [activeSugs,  setActiveSugs]  = useState<Suggestion[]>([]);
-  const [activeField, setActiveField] = useState<'from' | 'to' | null>(null);
-  const [routeH,      setRouteH]      = useState(0);
+  const [activeSugs,    setActiveSugs]    = useState<Suggestion[]>([]);
+  const [airlineSugs,   setAirlineSugs]   = useState<AirlineSuggestion[]>([]);
+  const [activeField,   setActiveField]   = useState<'from' | 'to' | 'airline' | null>(null);
+  const [routeH,        setRouteH]        = useState(0);
+  const [airlineSugTop, setAirlineSugTop] = useState(0);
 
   useEffect(() => {
     Animated.spring(translateY, {
@@ -61,7 +80,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
       stiffness: 350,
       mass: 0.7,
     }).start();
-    if (!visible) { setActiveSugs([]); setActiveField(null); }
+    if (!visible) { setActiveSugs([]); setAirlineSugs([]); setActiveField(null); }
   }, [visible]);
 
   function handleClose() {
@@ -89,8 +108,19 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
   }
 
   function onInputBlur() {
-    //delay lets the suggestion tap register before the list disappears
-    setTimeout(() => setActiveSugs([]), 150);
+    setTimeout(() => { setActiveSugs([]); setAirlineSugs([]); }, 150);
+  }
+
+  function onAirlineChange(text: string) {
+    setAirline(text);
+    setActiveField('airline');
+    setAirlineSugs(searchAirlines(text));
+  }
+
+  function selectAirline(name: string) {
+    setAirline(name);
+    setAirlineSugs([]);
+    setActiveField(null);
   }
 
   function handleSave() {
@@ -120,7 +150,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
       pointerEvents={visible ? 'box-none' : 'none'}
     >
       {/*kav is flex:1 — the spacer above the sheet absorbs the keyboard height*/}
-      <KeyboardAvoidingView style={s.kav} behavior="padding" pointerEvents="box-none">
+      <KeyboardAvoidingView style={s.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} pointerEvents="box-none">
         <View style={s.spacer} pointerEvents="none" />
         <View style={s.sheet}>
           <View style={s.titleRow}>
@@ -187,37 +217,58 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
               )}
             </View>
 
-            {/*detail card — aircraft and airline share one container with a rule between*/}
-            <View style={s.detailCard}>
-              <View style={s.detailRow}>
-                <Text style={s.detailTag}>AIRCRAFT</Text>
-                <TextInput
-                  style={s.detailInput}
-                  value={aircraft}
-                  onChangeText={setAircraft}
-                  placeholder="Boeing 737-800"
-                  placeholderTextColor="#253548"
+            {/*detail card wrapper — airline suggestions float absolutely over date row / logBtn*/}
+            <View style={s.detailOuter}>
+              <View style={s.detailCard}>
+                <View style={s.detailRow}>
+                  <Text style={s.detailTag}>AIRCRAFT</Text>
+                  <TextInput
+                    style={s.detailInput}
+                    value={aircraft}
+                    onChangeText={setAircraft}
+                    placeholder="Boeing 737-800"
+                    placeholderTextColor="#253548"
+                  />
+                </View>
+                <View style={s.rule} />
+                <View
+                  style={s.detailRow}
+                  onLayout={e => setAirlineSugTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
+                >
+                  <Text style={s.detailTag}>AIRLINE</Text>
+                  <TextInput
+                    style={s.detailInput}
+                    value={airline}
+                    onChangeText={onAirlineChange}
+                    onFocus={() => { setActiveField('airline'); setAirlineSugs(searchAirlines(airline)); }}
+                    onBlur={onInputBlur}
+                    placeholder="British Airways"
+                    placeholderTextColor="#253548"
+                  />
+                </View>
+                <View style={s.rule} />
+                <DatePickerField
+                  value={date}
+                  onChange={setDate}
+                  rowStyle={s.detailRow}
+                  tagStyle={s.detailTag}
+                  inputStyle={s.detailInput}
                 />
               </View>
-              <View style={s.rule} />
-              <View style={s.detailRow}>
-                <Text style={s.detailTag}>AIRLINE</Text>
-                <TextInput
-                  style={s.detailInput}
-                  value={airline}
-                  onChangeText={setAirline}
-                  placeholder="British Airways"
-                  placeholderTextColor="#253548"
-                />
-              </View>
-              <View style={s.rule} />
-              <DatePickerField
-                value={date}
-                onChange={setDate}
-                rowStyle={s.detailRow}
-                tagStyle={s.detailTag}
-                inputStyle={s.detailInput}
-              />
+
+              {airlineSugs.length > 0 && (
+                <View style={[s.sugList, { top: airlineSugTop }]}>
+                  {airlineSugs.map((sug, idx) => (
+                    <React.Fragment key={sug.icao}>
+                      {idx > 0 && <View style={s.sugRule} />}
+                      <TouchableOpacity style={s.sugItem} onPress={() => selectAirline(sug.name)}>
+                        <Text style={s.sugCode}>{sug.icao}</Text>
+                        <Text style={s.sugName} numberOfLines={1}>{sug.name}</Text>
+                      </TouchableOpacity>
+                    </React.Fragment>
+                  ))}
+                </View>
+              )}
             </View>
 
             <TouchableOpacity style={s.logBtn} onPress={handleSave}>
@@ -243,7 +294,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 22,
     paddingHorizontal: 18,
     paddingTop: 22,
-    paddingBottom: 44,
+    paddingBottom: Platform.OS === 'android' ? 56 : 44,
   },
   titleRow: {
     flexDirection: 'row',
@@ -352,10 +403,13 @@ const s = StyleSheet.create({
   },
 
   //detail card
+  detailOuter: {
+    zIndex: 9,
+    marginBottom: 10,
+  },
   detailCard: {
     backgroundColor: '#1a2535',
     borderRadius: 16,
-    marginBottom: 10,
     overflow: 'hidden',
   },
   detailRow: {

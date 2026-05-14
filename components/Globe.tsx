@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View, PanResponder } from 'react-native';
 import { GLView, ExpoWebGLRenderingContext } from 'expo-gl';
-import { loadAsync } from 'expo-three';
 import * as THREE from 'three';
-import { EARTH_TEXTURE } from '../assets/earthTexture';
+import jpegjs from 'jpeg-js';
+import { EARTH_JPEG_BASE64 } from '../assets/earthTextureBase64';
 import { AIRPORTS } from '../data/airports';
 import { getAllFlights } from '../data/db';
 
@@ -24,11 +24,56 @@ function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
 
 const ARC_COLOR = new THREE.Color(1, 0, 0);
 
-async function tryLoadEarthTexture(): Promise<THREE.Texture | null> {
-  if (!EARTH_TEXTURE) return null;
+// Decodes earth.jpg in JS (jpeg-js) and uploads raw RGBA pixels via the standard
+// gl.texImage2D TypedArray path. This bypasses expo-gl's native stbi_load extension
+// Decodes the embedded JPEG (base64 in earthTextureBase64.ts) via jpeg-js and
+// uploads raw RGBA pixels using the standard gl.texImage2D TypedArray path.
+// Embedding the JPEG in the JS bundle sidesteps Android's raw-resource URI scheme
+// (assets_earth) which is unreachable from fetch/FileSystem/expo-gl's stbi_load.
+async function tryLoadEarthTexture(
+  gl: ExpoWebGLRenderingContext,
+  renderer: THREE.WebGLRenderer,
+): Promise<THREE.Texture | null> {
   try {
-    return (await loadAsync(EARTH_TEXTURE)) as THREE.Texture;
-  } catch {
+    const binary  = atob(EARTH_JPEG_BASE64);
+    const jpegBuf = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) jpegBuf[i] = binary.charCodeAt(i);
+
+    const { data: pixels, width, height } = jpegjs.decode(
+      jpegBuf.buffer as ArrayBuffer,
+      { useTArray: true },
+    );
+
+    // JPEG rows are top→bottom; raw glTexImage2D expects bottom→top. Flip in-place.
+    const rowBytes = width * 4;
+    const tmp = new Uint8Array(rowBytes);
+    for (let y = 0; y < height >> 1; y++) {
+      const top = pixels.subarray(y * rowBytes, (y + 1) * rowBytes);
+      const bot = pixels.subarray((height - 1 - y) * rowBytes, (height - y) * rowBytes);
+      tmp.set(top); top.set(bot); bot.set(tmp);
+    }
+
+    const glTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, glTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    const texture = new THREE.Texture();
+    texture.wrapS   = THREE.RepeatWrapping;
+    texture.wrapT   = THREE.RepeatWrapping;
+    texture.flipY   = false;
+    const props = (renderer as any).properties.get(texture);
+    props.__webglTexture = glTex;
+    props.__webglInit    = true;
+
+    return texture;
+  } catch (e) {
+    console.error('[Globe] texture load failed:', e);
     return null;
   }
 }
@@ -71,7 +116,6 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
         const t = e.nativeEvent.touches;
 
         if (t.length >= 2) {
-          //pinch zoom
           const dx   = t[0].pageX - t[1].pageX;
           const dy   = t[0].pageY - t[1].pageY;
           const dist = Math.sqrt(dx * dx + dy * dy);
@@ -87,9 +131,7 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
             );
           }
         } else if (t.length === 1) {
-          //single finger rotate
           if (isPinching.current) {
-            //reset reference on pinch to drag transition
             isPinching.current = false;
             lastPos.current = { x: t[0].pageX, y: t[0].pageY };
             return;
@@ -111,7 +153,6 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
     }),
   ).current;
 
-  //gl context setup
   const onContextCreate = async (gl: ExpoWebGLRenderingContext) => {
     const W = gl.drawingBufferWidth;
     const H = gl.drawingBufferHeight;
@@ -138,15 +179,13 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
     groupRef.current = group;
     scene.add(group);
 
-    //earth sphere
-    const earthTexture = await tryLoadEarthTexture();
+    const earthTexture = await tryLoadEarthTexture(gl, renderer);
     const earthMat = earthTexture
       ? new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 25, specular: 0x111111 })
       : new THREE.MeshPhongMaterial({ color: 0x1a3a6e,  shininess: 60, specular: 0x334477 });
 
     group.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R, 64, 64), earthMat));
 
-    //lat lon grid overlay
     group.add(
       new THREE.Mesh(
         new THREE.SphereGeometry(GLOBE_R + 0.002, 36, 18),
@@ -156,7 +195,6 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
       ),
     );
 
-    //atmosphere fixed does not rotate with globe
     scene.add(
       new THREE.Mesh(
         new THREE.SphereGeometry(GLOBE_R * 1.08, 64, 64),
@@ -164,13 +202,12 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
       ),
     );
 
-    //stars
     const starVerts: number[] = [];
     while (starVerts.length < 1800 * 3) {
       const x = THREE.MathUtils.randFloatSpread(120);
       const y = THREE.MathUtils.randFloatSpread(120);
       const z = THREE.MathUtils.randFloatSpread(120);
-      if (x * x + y * y + z * z > 100) { //skip stars within 10 units of origin
+      if (x * x + y * y + z * z > 100) {
         starVerts.push(x, y, z);
       }
     }
@@ -178,18 +215,15 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
     scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.12 })));
 
-    //lights
     scene.add(new THREE.AmbientLight(0x334466, 0.9));
     const sun = new THREE.DirectionalLight(0xfff0dd, 1.6);
     sun.position.set(5, 3, 5);
     scene.add(sun);
 
-    //routes group is cleared and rebuilt whenever flights change
     const routesGroup = new THREE.Group();
     group.add(routesGroup);
 
     function buildRoutes() {
-      //dispose old geometries and materials before clearing
       routesGroup.children.slice().forEach(c => {
         const obj = c as any;
         obj.geometry?.dispose();
@@ -200,7 +234,6 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
 
       const flights = getAllFlights();
 
-      //airport dots
       const usedAirports = new Set<string>();
       flights.forEach(({ from, to }) => { usedAirports.add(from); usedAirports.add(to); });
       const dotGeo = new THREE.SphereGeometry(0.005, 8, 8);
@@ -209,18 +242,16 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
         const ap = AIRPORTS[code];
         if (!ap) return;
         const dot = new THREE.Mesh(dotGeo, dotMat);
-        dot.position.copy(latLonToVec3(ap.lat, ap.lon, GLOBE_R + 0.012));
+        dot.position.copy(latLonToVec3(ap.lat, ap.lon, GLOBE_R + 0.006));
         routesGroup.add(dot);
       });
 
-      //route frequency counts
       const routeCount = new Map<string, number>();
       flights.forEach(({ from, to }) => {
         const key = [from, to].sort().join('|');
         routeCount.set(key, (routeCount.get(key) ?? 0) + 1);
       });
 
-      //arc lines
       if (!routeCount.size) return;
 
       routeCount.forEach((_count, key) => {
@@ -228,8 +259,8 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
         const a1 = AIRPORTS[codeA];
         const a2 = AIRPORTS[codeB];
         if (!a1 || !a2) return;
-        const v1  = latLonToVec3(a1.lat, a1.lon, GLOBE_R + 0.012);
-        const v2  = latLonToVec3(a2.lat, a2.lon, GLOBE_R + 0.012);
+        const v1  = latLonToVec3(a1.lat, a1.lon, GLOBE_R + 0.006);
+        const v2  = latLonToVec3(a2.lat, a2.lon, GLOBE_R + 0.006);
         const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
         mid.normalize().multiplyScalar(GLOBE_R + v1.distanceTo(v2) * 0.35);
         const pts = new THREE.QuadraticBezierCurve3(v1, mid, v2).getPoints(80);
@@ -241,7 +272,6 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
     rebuildRef.current = buildRoutes;
     buildRoutes();
 
-    //render loop
     const render = () => {
       requestAnimationFrame(render);
       if (autoRotate.current) group.rotation.y += 0.0006;
@@ -264,6 +294,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 195, //stops at the sheet peek height so globe is centred above it
+    bottom: 195,
   },
 });

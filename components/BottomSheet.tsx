@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import { AIRPORTS } from '../data/airports';
+import { AIRLINES } from '../data/airlines';
+import AIRLINE_LOGOS from '../assets/airlineLogos';
 import { getAllFlights, Flight } from '../data/db';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -38,34 +40,29 @@ function getAircraftImage(name: string): any {
   return require('../assets/aircraft/A320.png');
 }
 
-const AIRLINE_IMAGE_MAP: [string, any][] = [
-  ['ryanair', require('../assets/airlines/ryanair.png')],
-];
-
 function getAirlineImage(name: string): any {
   if (!name || name === '—') return null;
-  const stripped = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-  for (const [pattern, src] of AIRLINE_IMAGE_MAP) {
-    if (stripped.includes(pattern)) return src;
-  }
-  return null;
+  const nameLower = name.toLowerCase();
+  const airline = AIRLINES.find(a => a.name.toLowerCase() === nameLower);
+  if (!airline) return null;
+  return AIRLINE_LOGOS[airline.icao] ?? null;
 }
 
-const PEEK_H      = 305;
-const SNAP_TOP    = 0;
-const SNAP_BOTTOM = SCREEN_H - PEEK_H;
-const SNAPS       = [SNAP_TOP, SNAP_BOTTOM];
+const PEEK_H   = 330;
+const SNAP_TOP = 0;
 
 // ─── snap helpers ──────────────────────────────────────────────────────────────
 
-function nearestSnap(y: number): number {
-  return SNAPS.reduce((best, s) => (Math.abs(s - y) < Math.abs(best - y) ? s : best));
+function nearestSnap(y: number, snapBottom: number): number {
+  const snaps = [SNAP_TOP, snapBottom];
+  return snaps.reduce((best, s) => (Math.abs(s - y) < Math.abs(best - y) ? s : best));
 }
 
-function resolveSnap(y: number, vy: number): number {
-  if (vy < -0.3) { const above = SNAPS.filter(s => s < y); return above.length ? above[above.length - 1] : SNAP_TOP; }
-  if (vy >  0.3) { const below = SNAPS.find(s => s > y);   return below !== undefined ? below : SNAP_BOTTOM; }
-  return nearestSnap(y);
+function resolveSnap(y: number, vy: number, snapBottom: number): number {
+  const snaps = [SNAP_TOP, snapBottom];
+  if (vy < -0.3) { const above = snaps.filter(s => s < y); return above.length ? above[above.length - 1] : SNAP_TOP; }
+  if (vy >  0.3) { const below = snaps.find(s => s > y);   return below !== undefined ? below : snapBottom; }
+  return nearestSnap(y, snapBottom);
 }
 
 // ─── stats computation ─────────────────────────────────────────────────────────
@@ -289,14 +286,21 @@ function VBarChart({ data, color }: { data: { label: string; value: number }[]; 
 interface BottomSheetProps { hidden?: boolean; }
 
 export function BottomSheet({ hidden = false }: BottomSheetProps) {
-  const translateY = useRef(new Animated.Value(SNAP_BOTTOM)).current;
-  const liveY      = useRef(SNAP_BOTTOM);
-  const startY     = useRef(SNAP_BOTTOM);
+  //snapBottomRef is set from onLayout so it uses the real container height rather
+  //than Dimensions.get('window') which differs between Expo Go and a production
+  //edge-to-edge APK (edgeToEdgeEnabled:true makes the window include the nav-bar area)
+  const snapBottomRef = useRef(SCREEN_H - PEEK_H);
+  const firstLayout   = useRef(true);
+
+  const translateY = useRef(new Animated.Value(snapBottomRef.current)).current;
+  const liveY      = useRef(snapBottomRef.current);
+  const startY     = useRef(snapBottomRef.current);
   const [stats, setStats] = useState(computeStats);
 
-  //handle grows taller when expanded so the pill lands below android's notification zone
-  const handleH   = translateY.interpolate({ inputRange: [SNAP_TOP, SNAP_BOTTOM], outputRange: [80, 40], extrapolate: 'clamp' });
-  const pillPadTop = translateY.interpolate({ inputRange: [SNAP_TOP, SNAP_BOTTOM], outputRange: [36, 17], extrapolate: 'clamp' });
+  //inputRange uses the Dimensions-based initial value; extrapolate:'clamp' keeps
+  //the output correct even if translateY goes slightly beyond it after onLayout correction
+  const handleH    = translateY.interpolate({ inputRange: [SNAP_TOP, snapBottomRef.current], outputRange: [80, 40], extrapolate: 'clamp' });
+  const pillPadTop = translateY.interpolate({ inputRange: [SNAP_TOP, snapBottomRef.current], outputRange: [36, 17], extrapolate: 'clamp' });
 
   function snapTo(target: number) {
     Animated.spring(translateY, { toValue: target, useNativeDriver: false, damping: 22, stiffness: 350, mass: 0.7 }).start();
@@ -309,7 +313,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
 
   useEffect(() => {
     Animated.spring(translateY, {
-      toValue: hidden ? SCREEN_H : SNAP_BOTTOM,
+      toValue: hidden ? snapBottomRef.current + PEEK_H : snapBottomRef.current,
       useNativeDriver: false,
       damping: 22, stiffness: 350, mass: 0.7,
     }).start();
@@ -324,11 +328,11 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
       onMoveShouldSetPanResponder: (_, { dy }) => Math.abs(dy) > 3,
       onPanResponderGrant: () => { translateY.stopAnimation(); startY.current = liveY.current; },
       onPanResponderMove: (_, { dy }) => {
-        translateY.setValue(Math.max(SNAP_TOP, Math.min(SNAP_BOTTOM, startY.current + dy)));
+        translateY.setValue(Math.max(SNAP_TOP, Math.min(snapBottomRef.current, startY.current + dy)));
       },
       onPanResponderRelease: (_, { dy, vy }) => {
-        const pos    = Math.max(SNAP_TOP, Math.min(SNAP_BOTTOM, startY.current + dy));
-        const target = resolveSnap(pos, vy);
+        const pos    = Math.max(SNAP_TOP, Math.min(snapBottomRef.current, startY.current + dy));
+        const target = resolveSnap(pos, vy, snapBottomRef.current);
         Animated.spring(translateY, {
           toValue: target, useNativeDriver: false,
           damping: 22, stiffness: 350, mass: 0.7,
@@ -337,10 +341,26 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
     }),
   ).current;
 
+  //capture the true container height on first layout and correct the initial position
+  function onSheetLayout(e: any) {
+    const h = e.nativeEvent.layout.height;
+    if (h > 0 && firstLayout.current) {
+      firstLayout.current = false;
+      const newSnapBottom = h - PEEK_H;
+      snapBottomRef.current = newSnapBottom;
+      if (!hidden) {
+        translateY.setValue(newSnapBottom);
+        liveY.current  = newSnapBottom;
+        startY.current = newSnapBottom;
+      }
+    }
+  }
+
   return (
-    <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
-      {/*handle — grows taller when expanded so pill stays below android notification zone*/}
-      <Animated.View style={[styles.handleBar, { height: handleH }]} {...panResponder.panHandlers}>
+    <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]} onLayout={onSheetLayout}>
+      {/*handle — collapsable:false ensures the native view exists for touch events
+          in the New Architecture on Android*/}
+      <Animated.View style={[styles.handleBar, { height: handleH }]} {...panResponder.panHandlers} collapsable={false}>
         <Animated.View style={{ paddingTop: pillPadTop, alignItems: 'center' }}>
           <View style={styles.pill} />
         </Animated.View>
@@ -352,8 +372,8 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         showsVerticalScrollIndicator={false}
         bounces={false}
         onScrollEndDrag={(e) => {
-          if (e.nativeEvent.contentOffset.y <= 0 && liveY.current < SNAP_BOTTOM / 2) {
-            snapTo(SNAP_BOTTOM);
+          if (e.nativeEvent.contentOffset.y <= 0 && liveY.current < snapBottomRef.current / 2) {
+            snapTo(snapBottomRef.current);
           }
         }}
       >

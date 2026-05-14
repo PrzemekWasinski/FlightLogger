@@ -7,6 +7,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  StatusBar as RNStatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -62,7 +63,8 @@ function searchAirports(query: string): Suggestion[] {
 }
 
 const SCREEN_H   = Dimensions.get('window').height;
-const HEADER_TOP = Platform.OS === 'ios' ? 55 : 35;
+//On Android with edgeToEdgeEnabled the window starts at y=0 (behind the status bar)
+const HEADER_TOP = Platform.OS === 'ios' ? 55 : (RNStatusBar.currentHeight ?? 24) + 14;
 
 interface Props {
   visible: boolean;
@@ -249,9 +251,8 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
 
       {/*edit panel — absolute so it overlays the list*/}
       {editingFlight && (
-        <View style={s.editOverlay}>
+        <KeyboardAvoidingView style={s.editOverlay} behavior={Platform.OS === 'android' ? 'height' : 'padding'}>
           <TouchableOpacity style={s.editBackdrop} onPress={cancelEdit} activeOpacity={1} />
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <View style={s.editSheet}>
               <View style={s.editHeader}>
                 <Text style={s.editTitle}>Edit Flight</Text>
@@ -353,8 +354,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                 <Text style={s.saveIcon}>✈</Text>
               </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
-        </View>
+        </KeyboardAvoidingView>
       )}
     </Animated.View>
   );
@@ -426,12 +426,12 @@ const s = StyleSheet.create({
     marginRight: 12,
   },
   aircraftIcon: {
-    width: 48,
-    height: 48,
+    width: 64,
+    height: 64,
   },
   aircraftIconPlaceholder: {
-    width: 48,
-    height: 48,
+    width: 64,
+    height: 64,
   },
   contentCol: {
     flex: 1,
@@ -516,7 +516,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 22,
     paddingHorizontal: 18,
     paddingTop: 22,
-    paddingBottom: 44,
+    paddingBottom: Platform.OS === 'android' ? 72 : 44,
   },
   editHeader: {
     flexDirection: 'row',
