@@ -49,6 +49,19 @@ export function initDb(): void {
   //add distance_km to existing dbs that predate this column
   try { db.execSync('ALTER TABLE flights ADD COLUMN distance_km REAL'); } catch {}
 
+  //backfill distance_km for any rows that are missing it
+  const needsDist = db.getAllSync<{ id: number; origin: string; destination: string }>(
+    'SELECT id, origin, destination FROM flights WHERE distance_km IS NULL'
+  );
+  if (needsDist.length > 0) {
+    db.withTransactionSync(() => {
+      for (const r of needsDist) {
+        const dist = calcDistance(r.origin, r.destination);
+        if (dist !== null) db.runSync('UPDATE flights SET distance_km = ? WHERE id = ?', dist, r.id);
+      }
+    });
+  }
+
   const row = db.getFirstSync<{ c: number }>('SELECT COUNT(*) AS c FROM flights');
   if (!row || row.c === 0) {
     db.withTransactionSync(() => {

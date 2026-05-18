@@ -9,6 +9,8 @@ import {
   Text,
   View,
 } from 'react-native';
+
+const ACCENT = 'rgb(0, 255, 175)';
 import { AIRPORTS } from '../data/airports';
 import { AIRLINES } from '../data/airlines';
 import AIRLINE_LOGOS from '../assets/airlineLogos';
@@ -164,7 +166,7 @@ function computeStats() {
   const longestKm        = longestFlight?.distance_km ? Math.round(longestFlight.distance_km).toLocaleString() : null;
 
   const kmTotal = Math.round(totalKm);
-  const kmStr   = kmTotal >= 1000 ? (kmTotal / 1000).toFixed(1) + 'k' : String(kmTotal);
+  const kmStr   = kmTotal >= 1000 ? (kmTotal / 1000).toFixed(1) + 'K' : String(kmTotal);
 
   const topAirportCode = topAirportEntry?.label ?? '—';
   const topAirportFullName = topAirportEntry
@@ -208,9 +210,9 @@ function computeStats() {
 function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel }: { label: string; value: string; imageSource?: any; noImage?: boolean; borderedImage?: boolean; codeLabel?: string }) {
   return (
     <View style={card.container}>
-      <Text style={card.label}>{label}</Text>
+      <Text style={card.label} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
       {codeLabel
-        ? <View style={card.codeBox}><Text style={card.codeText}>{codeLabel}</Text></View>
+        ? <View style={card.codeBox}><Text style={card.codeText} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{codeLabel}</Text></View>
         : !noImage && (imageSource
           ? borderedImage
             ? <View style={card.imageBorder}><Image source={imageSource} style={card.image} resizeMode="contain" /></View>
@@ -221,10 +223,10 @@ function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel
       {value.includes('\n')
         ? <View style={card.valueLines}>
             {value.split('\n').map((line, i) => (
-              <Text key={i} style={card.value}>{line}</Text>
+              <Text key={i} style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{line}</Text>
             ))}
           </View>
-        : <Text style={card.value}>{value}</Text>
+        : <Text style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       }
     </View>
   );
@@ -233,14 +235,19 @@ function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel
 function CounterCard({ label, value }: { label: string; value: number }) {
   return (
     <View style={counter.card}>
-      <Text style={counter.num}>{value}</Text>
-      <Text style={counter.label}>{label}</Text>
+      <Text style={counter.num} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={counter.label} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
     </View>
   );
 }
 
 function SectionHeader({ title }: { title: string }) {
-  return <Text style={sec.title}>{title}</Text>;
+  return (
+    <View style={sec.row}>
+      <View style={sec.accent} />
+      <Text style={sec.title}>{title}</Text>
+    </View>
+  );
 }
 
 function HBarChart({ data, color }: { data: { label: string; value: number }[]; color: string }) {
@@ -248,13 +255,15 @@ function HBarChart({ data, color }: { data: { label: string; value: number }[]; 
   const max = Math.max(...data.map(d => d.value), 1);
   return (
     <View>
-      {data.map(({ label, value }) => (
-        <View key={label} style={chart.hRow}>
-          <Text style={chart.hLabel} numberOfLines={1}>{label}</Text>
+      {data.map(({ label, value }, i) => (
+        <View key={label} style={[chart.hItem, i > 0 && { marginTop: 16 }]}>
+          <View style={chart.hMeta}>
+            <Text style={chart.hLabel}>{label}</Text>
+            <Text style={[chart.hCount, { color }]}>{value}</Text>
+          </View>
           <View style={chart.hTrack}>
             <View style={[chart.hBar, { width: `${(value / max) * 100}%` as any, backgroundColor: color }]} />
           </View>
-          <Text style={chart.hCount}>{value}</Text>
         </View>
       ))}
     </View>
@@ -264,19 +273,22 @@ function HBarChart({ data, color }: { data: { label: string; value: number }[]; 
 function VBarChart({ data, color }: { data: { label: string; value: number }[]; color: string }) {
   const max = Math.max(...data.map(d => d.value), 1);
   return (
-    <View style={chart.vContainer}>
-      {data.map(({ label, value }) => (
-        <View key={label} style={chart.vCol}>
-          <Text style={chart.vCount}>{value > 0 ? value : ''}</Text>
-          <View style={chart.vBarBg}>
-            <View style={[
-              chart.vBar,
-              { height: `${Math.max(2, (value / max) * 100)}%` as any, backgroundColor: value > 0 ? color : 'transparent' },
-            ]} />
+    <View>
+      <View style={chart.vContainer}>
+        {data.map(({ label, value }) => (
+          <View key={label} style={chart.vCol}>
+            <Text style={[chart.vCount, value > 0 ? { color } : null]}>{value > 0 ? value : ''}</Text>
+            <View style={chart.vBarBg}>
+              <View style={[chart.vBar, {
+                height: `${Math.max(3, (value / max) * 100)}%` as any,
+                backgroundColor: value > 0 ? color : 'transparent',
+              }]} />
+            </View>
+            <Text style={chart.vLabel}>{label}</Text>
           </View>
-          <Text style={chart.vLabel} numberOfLines={1}>{label}</Text>
-        </View>
-      ))}
+        ))}
+      </View>
+      <View style={chart.vBaseline} />
     </View>
   );
 }
@@ -380,18 +392,18 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         {/*summary row*/}
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum}>{stats.flightCount}</Text>
-            <Text style={styles.summaryLabel}>FLIGHTS</Text>
+            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.flightCount}</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>FLIGHTS</Text>
           </View>
           <View style={styles.summarySep} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum}>{stats.kmStr}</Text>
-            <Text style={styles.summaryLabel}>KM FLOWN</Text>
+            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.kmStr}</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>KM FLOWN</Text>
           </View>
           <View style={styles.summarySep} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum}>{stats.countries}</Text>
-            <Text style={styles.summaryLabel}>COUNTRIES</Text>
+            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.countries}</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>COUNTRIES</Text>
           </View>
         </View>
 
@@ -422,32 +434,37 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         {/*charts*/}
         <SectionHeader title="Top 5 Airports" />
         <View style={styles.chartCard}>
-          <HBarChart data={stats.topAirports} color="#34d399" />
+          <HBarChart data={stats.topAirports} color={ACCENT} />
         </View>
 
         <SectionHeader title="Top 5 Airlines" />
         <View style={styles.chartCard}>
-          <HBarChart data={stats.topAirlines} color="#34d399" />
+          <HBarChart data={stats.topAirlines} color={ACCENT} />
+        </View>
+
+        <SectionHeader title="Top 5 Aircraft Types" />
+        <View style={styles.chartCard}>
+          <HBarChart data={stats.topAircraftList} color={ACCENT} />
         </View>
 
         <SectionHeader title="Top 5 Manufacturers" />
         <View style={styles.chartCard}>
-          <HBarChart data={stats.topManufacturerList} color="#34d399" />
+          <HBarChart data={stats.topManufacturerList} color={ACCENT} />
         </View>
 
         <SectionHeader title="Flights per Year" />
         <View style={styles.chartCard}>
-          <VBarChart data={stats.flightsPerYear} color="#34d399" />
+          <VBarChart data={stats.flightsPerYear} color={ACCENT} />
         </View>
 
         <SectionHeader title="Flights per Month" />
         <View style={styles.chartCard}>
-          <VBarChart data={stats.flightsPerMonth} color="#34d399" />
+          <VBarChart data={stats.flightsPerMonth} color={ACCENT} />
         </View>
 
         <SectionHeader title="Flights per Weekday" />
         <View style={[styles.chartCard, { marginBottom: 40 }]}>
-          <VBarChart data={stats.flightsPerWeekday} color="#34d399" />
+          <VBarChart data={stats.flightsPerWeekday} color={ACCENT} />
         </View>
       </ScrollView>
     </Animated.View>
@@ -487,8 +504,8 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   summaryItem: { flex: 1, alignItems: 'center' },
-  summaryNum: { color: '#f3f4f6', fontSize: 24, fontWeight: '700' },
-  summaryLabel: { color: '#4b5563', fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginTop: 2 },
+  summaryNum: { color: '#f3f4f6', fontSize: 24, fontWeight: '700', width: '100%', textAlign: 'center' },
+  summaryLabel: { color: '#4b5563', fontSize: 9, fontWeight: '700', letterSpacing: 0, marginTop: 2, width: '100%', textAlign: 'center' },
   summarySep: { width: 1, height: 36, backgroundColor: '#1e2d3d' },
 
   //stat card rows
@@ -530,10 +547,10 @@ const card = StyleSheet.create({
   label: { width: '100%', color: '#4b5563', fontSize: 11, textAlign: 'center' },
   placeholder: { width: '100%', height: 135, backgroundColor: '#243147', borderRadius: 6 },
   image: { width: '100%', height: 135 },
-  imageBorder: { width: '100%', borderWidth: 4, borderColor: '#1a2535', borderRadius: 8, overflow: 'hidden' },
-  codeBox:  { width: '100%', height: 135, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  codeText: { color: '#f3f4f6', fontSize: 28, fontWeight: '700', letterSpacing: 3 },
-  value: { color: '#f3f4f6', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  imageBorder: { width: '100%', borderRadius: 8, overflow: 'hidden' },
+  codeBox:  { width: '100%', height: 135, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  codeText: { color: '#f3f4f6', fontSize: 18, fontWeight: '700', letterSpacing: 0, width: '100%', textAlign: 'center' },
+  value: { width: '100%', color: '#f3f4f6', fontSize: 12, fontWeight: '600', textAlign: 'center' },
   valueLines: { width: '100%', gap: 8, alignItems: 'center' },
 });
 
@@ -548,37 +565,51 @@ const counter = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  num:   { color: '#f3f4f6', fontSize: 22, fontWeight: '700' },
-  label: { color: '#4b5563', fontSize: 10, fontWeight: '700', letterSpacing: 1, textAlign: 'center' },
+  num:   { color: ACCENT, fontSize: 22, fontWeight: '700', width: '100%', textAlign: 'center' },
+  label: { color: '#4b5563', fontSize: 9, fontWeight: '700', letterSpacing: 0, textAlign: 'center', width: '100%' },
 });
 
 const sec = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 6,
+  },
+  accent: {
+    width: 3,
+    height: 14,
+    backgroundColor: ACCENT,
+    borderRadius: 2,
+    marginRight: 8,
+  },
   title: {
     color: '#f3f4f6',
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.5,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 6,
+    flex: 1,
   },
 });
 
 const chart = StyleSheet.create({
   empty: { color: '#374151', fontSize: 13, textAlign: 'center', paddingVertical: 12 },
 
-  //horizontal bar chart
-  hRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 },
-  hLabel: { color: '#f3f4f6', fontSize: 12, fontWeight: '600', width: 70 },
-  hTrack: { flex: 1, height: 8, backgroundColor: '#243147', borderRadius: 4, overflow: 'hidden' },
-  hBar:   { height: '100%', borderRadius: 4 },
-  hCount: { color: '#4b5563', fontSize: 11, width: 28, textAlign: 'right' },
+  //horizontal bar chart — label + count on top row, bar below
+  hItem:  {},
+  hMeta:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 7 },
+  hLabel: { color: '#d1d5db', fontSize: 13, fontWeight: '500', flex: 1, marginRight: 10 },
+  hCount: { fontSize: 13, fontWeight: '700' },
+  hTrack: { height: 4, backgroundColor: '#1e2d3d', borderRadius: 2, overflow: 'hidden' },
+  hBar:   { height: '100%', borderRadius: 2 },
 
   //vertical bar chart
-  vContainer: { flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 4 },
-  vCol:    { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
-  vCount:  { color: '#4b5563', fontSize: 9, marginBottom: 2 },
-  vBarBg:  { width: '70%', flex: 1, justifyContent: 'flex-end' },
-  vBar:    { width: '100%', borderRadius: 3 },
-  vLabel:  { color: '#f3f4f6', fontSize: 9, marginTop: 4, textAlign: 'center', width: '100%' },
+  vContainer: { flexDirection: 'row', alignItems: 'flex-end', height: 130, gap: 3 },
+  vCol:       { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
+  vCount:     { color: '#4b5563', fontSize: 9, marginBottom: 3 },
+  vBarBg:     { width: '80%', flex: 1, justifyContent: 'flex-end' },
+  vBar:       { width: '100%', borderRadius: 3 },
+  vLabel:     { color: '#6b7280', fontSize: 9, marginTop: 5, textAlign: 'center', width: '100%' },
+  vBaseline:  { height: 1, backgroundColor: '#1e2d3d', marginTop: 0 },
 });

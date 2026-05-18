@@ -16,6 +16,8 @@ import { AIRLINES } from '../data/airlines';
 import { insertFlight } from '../data/db';
 import { DatePickerField } from './DatePickerField';
 
+const ACCENT = 'rgb(0, 255, 175)';
+
 const SCREEN_H = Dimensions.get('window').height;
 
 interface Props {
@@ -294,7 +296,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 22,
     paddingHorizontal: 18,
     paddingTop: 22,
-    paddingBottom: Platform.OS === 'android' ? 56 : 44,
+    paddingBottom: Platform.OS === 'android' ? 88 : 44,
   },
   titleRow: {
     flexDirection: 'row',
@@ -306,6 +308,7 @@ const s = StyleSheet.create({
     color: '#f3f4f6',
     fontSize: 18,
     fontWeight: '700',
+    flex: 1,
   },
   closeBtn: {
     width: 32,
@@ -386,7 +389,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   sugCode: {
-    color: '#60a5fa',
+    color: ACCENT,
     fontSize: 13,
     fontWeight: '700',
     width: 36,
@@ -444,13 +447,14 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 2,
     borderWidth: 1,
-    borderColor: '#1e3f60',
+    borderColor: 'rgba(0, 255, 175, 0.2)',
   },
   logTxt: {
-    color: '#60a5fa',
+    color: ACCENT,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
+    flex: 1,
   },
-  logIcon: { color: '#60a5fa', fontSize: 17 },
+  logIcon: { color: ACCENT, fontSize: 17 },
 });

@@ -6,6 +6,7 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  PixelRatio,
   Platform,
   StatusBar as RNStatusBar,
   StyleSheet,
@@ -17,6 +18,36 @@ import {
 import { AIRPORTS } from '../data/airports';
 import { DatePickerField } from './DatePickerField';
 import { getAllFlights, deleteFlight, updateFlight, Flight } from '../data/db';
+import { log } from '../utils/logger';
+
+const BUILD_TAG = 'BUILD-MARKER v8 — fixed-width buttons';
+
+const ACCENT = 'rgb(0, 255, 175)';
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function ordinal(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return n + 'th';
+  switch (n % 10) {
+    case 1:  return n + 'st';
+    case 2:  return n + 'nd';
+    case 3:  return n + 'rd';
+    default: return n + 'th';
+  }
+}
+
+// "2026-05-03" -> "3rd May 2026". Parsed from the YMD parts (no Date/UTC shift).
+function formatDate(ymd?: string | null): string {
+  if (!ymd) return '—';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(ymd);
+  if (!m) return ymd;
+  const year  = Number(m[1]);
+  const month = Number(m[2]);
+  const day   = Number(m[3]);
+  if (month < 1 || month > 12) return ymd;
+  return `${ordinal(day)} ${MONTHS[month - 1]} ${year}`;
+}
 
 //strip non-alphanumeric so "777-300ER" → "777300ER", then check if filename appears in it
 const AIRCRAFT_IMAGES: { key: string; src: ReturnType<typeof require> }[] = [
@@ -104,17 +135,33 @@ function FlightRow({ item, onEdit, onDelete }: RowProps) {
             <Text style={s.iata}>{item.to}</Text>
           </View>
 
-          {item.aircraft ? <Text style={s.infoLine}>{item.aircraft}</Text> : null}
+          {item.aircraft ? <Text style={s.aircraftLine}>{item.aircraft}</Text> : null}
           {item.airline  ? <Text style={s.infoLine}>{item.airline}</Text>  : null}
 
+          <Text style={s.date} allowFontScaling={false}>{formatDate(item.date)}</Text>
           <View style={s.cardBottom}>
-            <Text style={s.date}>{item.date ?? '—'}</Text>
             <View style={s.actions}>
-              <TouchableOpacity onPress={onEdit} style={s.actionBtn}>
-                <Text style={s.editTxt}>Edit</Text>
+              <TouchableOpacity
+                onPress={onEdit}
+                style={s.actionBtn}
+                onLayout={e => log('info', `EDIT btn box w=${e.nativeEvent.layout.width.toFixed(1)}`)}
+              >
+                <Text
+                  style={s.editTxt}
+                  allowFontScaling={false}
+                  onLayout={e => log('info', `EDIT text w=${e.nativeEvent.layout.width.toFixed(1)} h=${e.nativeEvent.layout.height.toFixed(1)}`)}
+                >Edit</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={onDelete} style={s.actionBtn}>
-                <Text style={s.deleteTxt}>Delete</Text>
+              <TouchableOpacity
+                onPress={onDelete}
+                style={s.actionBtn}
+                onLayout={e => log('info', `DELETE btn box w=${e.nativeEvent.layout.width.toFixed(1)}`)}
+              >
+                <Text
+                  style={s.deleteTxt}
+                  allowFontScaling={false}
+                  onLayout={e => log('info', `DELETE text w=${e.nativeEvent.layout.width.toFixed(1)} h=${e.nativeEvent.layout.height.toFixed(1)}`)}
+                >Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -150,7 +197,10 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       stiffness: 350,
       mass: 0.7,
     }).start();
-    if (visible) refresh();
+    if (visible) {
+      refresh();
+      log('info', `${BUILD_TAG} | fontScale=${PixelRatio.getFontScale()} pxRatio=${PixelRatio.get()} screen=${Math.round(Dimensions.get('window').width)}x${Math.round(Dimensions.get('window').height)}`);
+    }
     //clear any open edit panel when the logbook closes
     if (!visible) setEditingFlight(null);
   }, [visible]);
@@ -384,6 +434,7 @@ const s = StyleSheet.create({
     color: '#f3f4f6',
     fontSize: 18,
     fontWeight: '700',
+    flex: 1,
   },
   closeBtn: {
     width: 32,
@@ -420,18 +471,19 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   iconCol: {
-    width: 52,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   aircraftIcon: {
-    width: 64,
-    height: 64,
+    width: 60,
+    height: 60,
   },
   aircraftIconPlaceholder: {
-    width: 64,
-    height: 64,
+    width: 60,
+    height: 60,
   },
   contentCol: {
     flex: 1,
@@ -468,36 +520,54 @@ const s = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     marginTop: 2,
+    width: '100%',
+  },
+  aircraftLine: {
+    color: ACCENT,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 2,
+    width: '100%',
   },
   cardBottom: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     marginTop: 10,
   },
-  date: {
+    date: {
     color: '#f3f4f6',
     fontSize: 12,
+    width: '100%',
+    marginTop: 8,
   },
   actions: {
     flexDirection: 'row',
     gap: 6,
+    flexShrink: 0,
   },
   actionBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    width: 96,
+    paddingVertical: 8,
     borderRadius: 6,
     backgroundColor: '#1a2535',
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editTxt: {
-    color: '#60a5fa',
+    color: ACCENT,
     fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
+    width: '100%',
   },
   deleteTxt: {
     color: '#ef4444',
     fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
+    width: '100%',
   },
 
   //edit panel
@@ -586,7 +656,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   sugCode: {
-    color: '#60a5fa',
+    color: ACCENT,
     fontSize: 13,
     fontWeight: '700',
     width: 36,
@@ -652,16 +722,17 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#1e3f60',
+    borderColor: 'rgba(0, 255, 175, 0.2)',
   },
   saveTxt: {
-    color: '#60a5fa',
+    color: ACCENT,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
+    flex: 1,
   },
   saveIcon: {
-    color: '#60a5fa',
+    color: ACCENT,
     fontSize: 17,
   },
 });

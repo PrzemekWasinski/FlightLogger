@@ -1,0 +1,118 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  FlatList,
+  Platform,
+  StatusBar as RNStatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { getLogs, clearLogs, log, LogEntry } from '../utils/logger';
+
+const ACCENT     = 'rgb(0, 255, 175)';
+const SCREEN_H   = Dimensions.get('window').height;
+const HEADER_TOP = Platform.OS === 'ios' ? 55 : (RNStatusBar.currentHeight ?? 24) + 14;
+
+interface Props {
+  visible: boolean;
+  onClose: () => void;
+}
+
+function LogRow({ item }: { item: LogEntry }) {
+  const prefix = item.level === 'error' ? 'ERR' : item.level === 'warn' ? 'WRN' : 'INF';
+  return (
+    <Text style={s.row} selectable>
+      <Text style={s.time}>{item.time}  </Text>
+      <Text style={s.prefix}>{prefix}  </Text>
+      <Text style={s.msg}>{item.message}</Text>
+    </Text>
+  );
+}
+
+export function ErrorLogsModal({ visible, onClose }: Props) {
+  const translateY = useRef(new Animated.Value(SCREEN_H)).current;
+  const [entries, setEntries] = useState<LogEntry[]>([]);
+
+  useEffect(() => {
+    Animated.spring(translateY, {
+      toValue: visible ? 0 : SCREEN_H,
+      useNativeDriver: true,
+      damping: 22, stiffness: 350, mass: 0.7,
+    }).start();
+    if (visible) setEntries([...getLogs()]);
+  }, [visible]);
+
+  function handleClear() {
+    clearLogs();
+    log('info', 'Logs cleared');
+    setEntries([...getLogs()]);
+  }
+
+  return (
+    <Animated.View
+      style={[s.overlay, { transform: [{ translateY }] }]}
+      pointerEvents={visible ? 'auto' : 'none'}
+    >
+      <View style={s.header}>
+        <Text style={s.title}>Logs</Text>
+        <View style={s.headerRight}>
+          <TouchableOpacity onPress={handleClear}>
+            <Text style={s.clearTxt}>Clear</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} style={s.closeBtn}>
+            <Text style={s.closeTxt}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <FlatList
+        data={entries}
+        keyExtractor={item => String(item.id)}
+        renderItem={({ item }) => <LogRow item={item} />}
+        contentContainerStyle={s.list}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={<Text style={s.empty}>No logs</Text>}
+      />
+    </Animated.View>
+  );
+}
+
+const s = StyleSheet.create({
+  overlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#050a18',
+  },
+  header: {
+    paddingTop: HEADER_TOP,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#111827',
+  },
+  title: { color: '#f3f4f6', fontSize: 18, fontWeight: '700', flex: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  clearTxt: { color: ACCENT, fontSize: 14, minWidth: 40 },
+  closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  closeTxt: { color: '#4b5563', fontSize: 17 },
+
+  list: { padding: 16, paddingBottom: 40 },
+
+  row: {
+    fontSize: 12,
+    lineHeight: 22,
+    color: '#9ca3af',
+    fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
+  },
+  time: { color: '#374151' },
+  prefix: { color: '#6b7280' },
+  msg: { color: '#d1d5db' },
+
+  empty: { color: '#374151', fontSize: 13, marginTop: 40, textAlign: 'center' },
+});

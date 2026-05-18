@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AddFlightModal } from './components/AddFlightModal';
 import { BottomSheet } from './components/BottomSheet';
+import { ErrorLogsModal } from './components/ErrorLogsModal';
 import { Globe } from './components/Globe';
 import { LogbookModal } from './components/LogbookModal';
 import { initDb } from './data/db';
@@ -12,6 +13,7 @@ initDb();
 export default function App() {
   const [addOpen,      setAddOpen]      = useState(false);
   const [logbookOpen,  setLogbookOpen]  = useState(false);
+  const [logsOpen,     setLogsOpen]     = useState(false);
   const [refreshKey,   setRefreshKey]   = useState(0);
 
   function bumpRefresh() { setRefreshKey(k => k + 1); }
@@ -19,10 +21,9 @@ export default function App() {
   return (
     <View style={styles.root}>
       <Globe refreshKey={refreshKey} />
-      <BottomSheet hidden={addOpen || logbookOpen} />
+      <BottomSheet hidden={addOpen || logbookOpen || logsOpen} />
 
-      {/*hide buttons while any overlay is open*/}
-      {!addOpen && !logbookOpen && (
+      {!addOpen && !logbookOpen && !logsOpen && (
         <>
           <TouchableOpacity style={styles.addBtn} onPress={() => setAddOpen(true)}>
             <Text style={styles.addTxt}>+</Text>
@@ -35,11 +36,16 @@ export default function App() {
               <View style={[styles.bar, styles.barShort]} />
             </View>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.errBtn} onPress={() => setLogsOpen(true)}>
+            <Text style={styles.errTxt}>{'>_'}</Text>
+          </TouchableOpacity>
         </>
       )}
 
       <AddFlightModal  visible={addOpen}     onClose={() => setAddOpen(false)}     onFlightChange={bumpRefresh} />
       <LogbookModal    visible={logbookOpen} onClose={() => setLogbookOpen(false)} onFlightChange={bumpRefresh} />
+      <ErrorLogsModal  visible={logsOpen}    onClose={() => setLogsOpen(false)} />
       <StatusBar style="light" />
     </View>
   );
@@ -93,5 +99,16 @@ const styles = StyleSheet.create({
   },
   barShort: {
     width: 14,
+  },
+  errBtn: {
+    ...BTN,
+    top: 179,
+  },
+  errTxt: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    fontFamily: 'monospace',
   },
 });

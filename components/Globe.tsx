@@ -259,11 +259,28 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
         const a1 = AIRPORTS[codeA];
         const a2 = AIRPORTS[codeB];
         if (!a1 || !a2) return;
-        const v1  = latLonToVec3(a1.lat, a1.lon, GLOBE_R + 0.006);
-        const v2  = latLonToVec3(a2.lat, a2.lon, GLOBE_R + 0.006);
-        const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
-        mid.normalize().multiplyScalar(GLOBE_R + v1.distanceTo(v2) * 0.35);
-        const pts = new THREE.QuadraticBezierCurve3(v1, mid, v2).getPoints(80);
+
+        const v1   = latLonToVec3(a1.lat, a1.lon, 1);
+        const v2   = latLonToVec3(a2.lat, a2.lon, 1);
+        const axis = new THREE.Vector3().crossVectors(v1, v2);
+        if (axis.lengthSq() < 1e-8) return; // skip same-point or antipodal
+        axis.normalize();
+
+        const angle     = v1.angleTo(v2);
+        // sqrt compresses the range: short routes ~0.015, transatlantic ~0.07, ultra-long ~0.12
+        const arcHeight = Math.min(0.18, 0.07 * Math.sqrt(angle));
+        const N         = 80;
+        const pts: THREE.Vector3[] = [];
+        for (let i = 0; i <= N; i++) {
+          const t    = i / N;
+          const elev = Math.sin(t * Math.PI) * arcHeight;
+          pts.push(
+            v1.clone()
+              .applyAxisAngle(axis, angle * t)
+              .normalize()
+              .multiplyScalar(GLOBE_R + 0.006 + elev),
+          );
+        }
         const geo = new THREE.BufferGeometry().setFromPoints(pts);
         routesGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: ARC_COLOR })));
       });
