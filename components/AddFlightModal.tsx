@@ -66,6 +66,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
   const [fromText,    setFromText]    = useState('');
   const [toText,      setToText]      = useState('');
   const [aircraft,    setAircraft]    = useState('');
+  const [registration, setRegistration] = useState('');
   const [airline,     setAirline]     = useState('');
   const [date,        setDate]        = useState('');
   const [activeSugs,    setActiveSugs]    = useState<Suggestion[]>([]);
@@ -132,13 +133,15 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
     insertFlight(
       from,
       to,
-      airline.trim()  || undefined,
-      aircraft.trim() || undefined,
-      date.trim()     || undefined,
+      airline.trim()      || undefined,
+      aircraft.trim()     || undefined,
+      registration.trim().toUpperCase() || undefined,
+      date.trim()         || undefined,
     );
     setFromText('');
     setToText('');
     setAircraft('');
+    setRegistration('');
     setAirline('');
     setDate('');
     setActiveSugs([]);
@@ -230,6 +233,19 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     onChangeText={setAircraft}
                     placeholder="Boeing 737-800"
                     placeholderTextColor="#253548"
+                  />
+                </View>
+                <View style={s.rule} />
+                <View style={s.detailRow}>
+                  <Text style={s.detailTag}>REGISTRATION</Text>
+                  <TextInput
+                    style={s.detailInput}
+                    value={registration}
+                    onChangeText={setRegistration}
+                    placeholder="G-XLEA"
+                    placeholderTextColor="#253548"
+                    autoCapitalize="characters"
+                    autoCorrect={false}
                   />
                 </View>
                 <View style={s.rule} />

@@ -135,8 +135,9 @@ function FlightRow({ item, onEdit, onDelete }: RowProps) {
             <Text style={s.iata}>{item.to}</Text>
           </View>
 
-          {item.aircraft ? <Text style={s.aircraftLine}>{item.aircraft}</Text> : null}
-          {item.airline  ? <Text style={s.infoLine}>{item.airline}</Text>  : null}
+          {item.aircraft     ? <Text style={s.aircraftLine}>{item.aircraft}</Text> : null}
+          {item.registration ? <Text style={s.regLine}>{item.registration}</Text> : null}
+          {item.airline      ? <Text style={s.infoLine}>{item.airline}</Text>  : null}
 
           <Text style={s.date} allowFontScaling={false}>{formatDate(item.date)}</Text>
           <View style={s.cardBottom}>
@@ -183,6 +184,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   const [editFrom,        setEditFrom]        = useState('');
   const [editTo,          setEditTo]          = useState('');
   const [editAircraft,    setEditAircraft]    = useState('');
+  const [editRegistration, setEditRegistration] = useState('');
   const [editAirline,     setEditAirline]     = useState('');
   const [editDate,        setEditDate]        = useState('');
   const [editActiveSugs,  setEditActiveSugs]  = useState<Suggestion[]>([]);
@@ -211,6 +213,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     setEditFrom(flight.from);
     setEditTo(flight.to);
     setEditAircraft(flight.aircraft ?? '');
+    setEditRegistration(flight.registration ?? '');
     setEditAirline(flight.airline   ?? '');
     setEditDate(flight.date         ?? '');
     setEditActiveSugs([]);
@@ -231,6 +234,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       editTo.trim().toUpperCase(),
       editAirline.trim()  || undefined,
       editAircraft.trim() || undefined,
+      editRegistration.trim().toUpperCase() || undefined,
       editDate.trim()     || undefined,
     );
     Keyboard.dismiss();
@@ -376,6 +380,19 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                     onChangeText={setEditAircraft}
                     placeholder="Boeing 737-800"
                     placeholderTextColor="#253548"
+                  />
+                </View>
+                <View style={s.detailRule} />
+                <View style={s.detailRow}>
+                  <Text style={s.detailTag}>REGISTRATION</Text>
+                  <TextInput
+                    style={s.detailInput}
+                    value={editRegistration}
+                    onChangeText={setEditRegistration}
+                    placeholder="G-XLEA"
+                    placeholderTextColor="#253548"
+                    autoCapitalize="characters"
+                    autoCorrect={false}
                   />
                 </View>
                 <View style={s.detailRule} />
@@ -526,6 +543,14 @@ const s = StyleSheet.create({
     color: ACCENT,
     fontSize: 15,
     lineHeight: 22,
+    marginTop: 2,
+    width: '100%',
+  },
+  regLine: {
+    color: '#9ca3af',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 1,
     marginTop: 2,
     width: '100%',
   },

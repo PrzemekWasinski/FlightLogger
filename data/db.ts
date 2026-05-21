@@ -75,10 +75,10 @@ export function initDb(): void {
   }
 }
 
-export function insertFlight(from: string, to: string, airline?: string, aircraft?: string, date?: string): void {
+export function insertFlight(from: string, to: string, airline?: string, aircraft?: string, registration?: string, date?: string): void {
   db.runSync(
-    'INSERT INTO flights (origin, destination, airline, aircraft, date, distance_km) VALUES (?, ?, ?, ?, ?, ?)',
-    from, to, airline ?? null, aircraft ?? null, date ?? null, calcDistance(from, to),
+    'INSERT INTO flights (origin, destination, airline, aircraft, registration, date, distance_km) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    from, to, airline ?? null, aircraft ?? null, registration ?? null, date ?? null, calcDistance(from, to),
   );
 }
 
@@ -86,10 +86,10 @@ export function deleteFlight(id: number): void {
   db.runSync('DELETE FROM flights WHERE id = ?', id);
 }
 
-export function updateFlight(id: number, from: string, to: string, airline?: string, aircraft?: string, date?: string): void {
+export function updateFlight(id: number, from: string, to: string, airline?: string, aircraft?: string, registration?: string, date?: string): void {
   db.runSync(
-    'UPDATE flights SET origin = ?, destination = ?, airline = ?, aircraft = ?, date = ?, distance_km = ? WHERE id = ?',
-    from, to, airline ?? null, aircraft ?? null, date ?? null, calcDistance(from, to), id,
+    'UPDATE flights SET origin = ?, destination = ?, airline = ?, aircraft = ?, registration = ?, date = ?, distance_km = ? WHERE id = ?',
+    from, to, airline ?? null, aircraft ?? null, registration ?? null, date ?? null, calcDistance(from, to), id,
   );
 }
 
