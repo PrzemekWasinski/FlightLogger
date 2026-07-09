@@ -10,7 +10,27 @@ import {
   View,
 } from 'react-native';
 
-const ACCENT = 'rgb(0, 255, 175)';
+const COLORS = {
+  bg: '#07111f',
+  sheet: 'rgba(12, 24, 38, 0.86)',
+  surface: 'rgba(20, 32, 51, 0.78)',
+  surface2: 'rgba(24, 40, 61, 0.74)',
+  line: 'rgba(117, 146, 170, 0.24)',
+  text: '#edf4f7',
+  muted: '#8392a5',
+  dim: '#536377',
+  amber: '#f0b35a',
+  teal: '#65d0c2',
+  coral: '#ff7f6e',
+  blue: '#8bb7ff',
+  ink: '#07111f',
+  whiteLine: 'rgba(255,255,255,0.07)',
+  amberWash: 'rgba(240, 179, 90, 0.12)',
+  tealWash: 'rgba(101, 208, 194, 0.12)',
+  blueWash: 'rgba(139, 183, 255, 0.12)',
+  coralWash: 'rgba(255, 127, 110, 0.12)',
+};
+const ACCENT = COLORS.amber;
 import { AIRPORTS } from '../data/airports';
 import { AIRLINES } from '../data/airlines';
 import AIRLINE_LOGOS from '../assets/airlineLogos';
@@ -250,19 +270,33 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function HBarChart({ data, color }: { data: { label: string; value: number }[]; color: string }) {
-  if (!data.length) return <Text style={chart.empty}>no data</Text>;
+function EmptyChart() {
+  return <Text style={chart.empty}>no data yet</Text>;
+}
+
+function topPercent(value: number, max: number): `${number}%` {
+  return `${Math.max(8, Math.min(100, (value / Math.max(max, 1)) * 100))}%` as `${number}%`;
+}
+
+function RankedRunwayChart({ data, color, wash }: { data: { label: string; value: number }[]; color: string; wash: string }) {
+  if (!data.length) return <EmptyChart />;
   const max = Math.max(...data.map(d => d.value), 1);
   return (
-    <View>
+    <View style={chart.rankWrap}>
       {data.map(({ label, value }, i) => (
-        <View key={label} style={[chart.hItem, i > 0 && { marginTop: 16 }]}>
-          <View style={chart.hMeta}>
-            <Text style={chart.hLabel}>{label}</Text>
-            <Text style={[chart.hCount, { color }]}>{value}</Text>
+        <View key={label} style={[chart.rankRow, { backgroundColor: wash }]}>
+          <View style={[chart.rankBadge, { borderColor: color }]}>
+            <Text style={[chart.rankBadgeText, { color }]} allowFontScaling={false}>{i + 1}</Text>
           </View>
-          <View style={chart.hTrack}>
-            <View style={[chart.hBar, { width: `${(value / max) * 100}%` as any, backgroundColor: color }]} />
+          <View style={chart.rankBody}>
+            <View style={chart.rankMeta}>
+              <Text style={chart.rankLabel} numberOfLines={1}>{label}</Text>
+              <Text style={[chart.rankValue, { color }]} allowFontScaling={false}>{value}</Text>
+            </View>
+            <View style={chart.runway}>
+              <View style={[chart.runwayFill, { width: topPercent(value, max), backgroundColor: color }]} />
+              <View style={chart.runwayDash} />
+            </View>
           </View>
         </View>
       ))}
@@ -270,25 +304,131 @@ function HBarChart({ data, color }: { data: { label: string; value: number }[]; 
   );
 }
 
-function VBarChart({ data, color }: { data: { label: string; value: number }[]; color: string }) {
+function FleetTilesChart({ data }: { data: { label: string; value: number }[] }) {
+  if (!data.length) return <Text style={chart.empty}>no data</Text>;
   const max = Math.max(...data.map(d => d.value), 1);
   return (
+    <View style={chart.fleetGrid}>
+      {data.map(({ label, value }, i) => (
+        <View key={label} style={chart.fleetTile}>
+          <View style={chart.fleetTop}>
+            <Text style={chart.fleetRank} allowFontScaling={false}>0{i + 1}</Text>
+            <Text style={chart.fleetCount} allowFontScaling={false}>{value}</Text>
+          </View>
+          <Image source={getAircraftImage(label)} style={chart.fleetImage} resizeMode="contain" />
+          <Text style={chart.fleetLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+          <View style={chart.fleetTrack}>
+            <View style={[chart.fleetFill, { width: topPercent(value, max) }]} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function ShareStackChart({ data }: { data: { label: string; value: number }[] }) {
+  if (!data.length) return <EmptyChart />;
+  const total = Math.max(data.reduce((sum, item) => sum + item.value, 0), 1);
+  const palette = [COLORS.amber, COLORS.teal, COLORS.blue, COLORS.coral, COLORS.muted];
+  return (
     <View>
-      <View style={chart.vContainer}>
-        {data.map(({ label, value }) => (
-          <View key={label} style={chart.vCol}>
-            <Text style={[chart.vCount, value > 0 ? { color } : null]}>{value > 0 ? value : ''}</Text>
-            <View style={chart.vBarBg}>
-              <View style={[chart.vBar, {
-                height: `${Math.max(3, (value / max) * 100)}%` as any,
-                backgroundColor: value > 0 ? color : 'transparent',
-              }]} />
-            </View>
-            <Text style={chart.vLabel}>{label}</Text>
+      <View style={chart.shareTrack}>
+        {data.map((item, i) => (
+          <View
+            key={item.label}
+            style={[
+              chart.shareSegment,
+              {
+                flex: Math.max(item.value, total * 0.06),
+                backgroundColor: palette[i % palette.length],
+              },
+            ]}
+          />
+        ))}
+      </View>
+      <View style={chart.shareLegend}>
+        {data.map((item, i) => (
+          <View key={item.label} style={chart.shareItem}>
+            <View style={[chart.shareDot, { backgroundColor: palette[i % palette.length] }]} />
+            <Text style={chart.shareLabel} numberOfLines={1}>{item.label}</Text>
+            <Text style={chart.shareValue} allowFontScaling={false}>{Math.round((item.value / total) * 100)}%</Text>
           </View>
         ))}
       </View>
-      <View style={chart.vBaseline} />
+    </View>
+  );
+}
+
+function TowerChart({ data, color }: { data: { label: string; value: number }[]; color: string }) {
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <View style={chart.towerWrap}>
+      {data.map(({ label, value }) => (
+        <View key={label} style={chart.towerCol}>
+          <Text style={[chart.towerCount, value > 0 ? { color } : null]} allowFontScaling={false}>{value || ''}</Text>
+          <View style={chart.towerLane}>
+            <View style={[chart.towerFill, {
+              height: topPercent(value, max),
+              backgroundColor: value > 0 ? color : 'transparent',
+            }]} />
+            <View style={chart.towerMarker} />
+          </View>
+          <Text style={chart.towerLabel} numberOfLines={1}>{label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function ActivityRibbonChart({ data }: { data: { label: string; value: number }[] }) {
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <View style={chart.ribbonWrap}>
+      <View style={chart.ribbonGrid}>
+        {data.map(({ label, value }, i) => {
+          const active = value > 0;
+          const level = Math.max(0.16, value / max);
+          return (
+            <View key={`${label}-${i}`} style={chart.ribbonCellWrap}>
+              <View style={[
+                chart.ribbonCell,
+                {
+                  opacity: active ? 0.45 + level * 0.55 : 0.32,
+                  backgroundColor: active ? COLORS.teal : 'rgba(83, 99, 119, 0.22)',
+                  transform: [{ scaleY: active ? 0.72 + level * 0.28 : 0.72 }],
+                },
+              ]}>
+                <Text style={[chart.ribbonValue, active && { color: COLORS.ink }]} allowFontScaling={false}>
+                  {active ? value : ''}
+                </Text>
+              </View>
+              <Text style={chart.ribbonLabel} numberOfLines={1}>{label}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function WeekdayDialChart({ data }: { data: { label: string; value: number }[] }) {
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <View style={chart.dialGrid}>
+      {data.map(({ label, value }) => {
+        const pct = value / max;
+        const color = value > 0 ? (pct > 0.66 ? COLORS.amber : pct > 0.33 ? COLORS.teal : COLORS.blue) : COLORS.dim;
+        return (
+          <View key={label} style={chart.dialCard}>
+            <View style={[chart.dialRing, { borderColor: color, opacity: value > 0 ? 1 : 0.42 }]}>
+              <View style={[chart.dialCore, { backgroundColor: value > 0 ? color : 'transparent' }]}>
+                <Text style={[chart.dialValue, value > 0 && { color: COLORS.ink }]} allowFontScaling={false}>{value}</Text>
+              </View>
+            </View>
+            <Text style={chart.dialLabel}>{label}</Text>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -308,6 +448,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
   const liveY      = useRef(snapBottomRef.current);
   const startY     = useRef(snapBottomRef.current);
   const [stats, setStats] = useState(computeStats);
+  const [scrollBottomPad, setScrollBottomPad] = useState(snapBottomRef.current + 48);
 
   //inputRange uses the Dimensions-based initial value; extrapolate:'clamp' keeps
   //the output correct even if translateY goes slightly beyond it after onLayout correction
@@ -316,6 +457,11 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
 
   function snapTo(target: number) {
     Animated.spring(translateY, { toValue: target, useNativeDriver: false, damping: 22, stiffness: 350, mass: 0.7 }).start();
+  }
+
+  function toggleSheet() {
+    const midpoint = snapBottomRef.current / 2;
+    snapTo(liveY.current > midpoint ? SNAP_TOP : snapBottomRef.current);
   }
 
   useEffect(() => {
@@ -343,6 +489,10 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         translateY.setValue(Math.max(SNAP_TOP, Math.min(snapBottomRef.current, startY.current + dy)));
       },
       onPanResponderRelease: (_, { dy, vy }) => {
+        if (Math.abs(dy) < 6 && Math.abs(vy) < 0.15) {
+          toggleSheet();
+          return;
+        }
         const pos    = Math.max(SNAP_TOP, Math.min(snapBottomRef.current, startY.current + dy));
         const target = resolveSnap(pos, vy, snapBottomRef.current);
         Animated.spring(translateY, {
@@ -360,6 +510,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
       firstLayout.current = false;
       const newSnapBottom = h - PEEK_H;
       snapBottomRef.current = newSnapBottom;
+      setScrollBottomPad(newSnapBottom + 48);
       if (!hidden) {
         translateY.setValue(newSnapBottom);
         liveY.current  = newSnapBottom;
@@ -381,6 +532,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
       {/*bounces false + onScrollEndDrag lets user drag-down from top to collapse*/}
       <ScrollView
         style={{ flex: 1 }}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPad }]}
         showsVerticalScrollIndicator={false}
         bounces={false}
         onScrollEndDrag={(e) => {
@@ -393,17 +545,17 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.flightCount}</Text>
-            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>FLIGHTS</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>Flights</Text>
           </View>
           <View style={styles.summarySep} />
           <View style={styles.summaryItem}>
             <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.kmStr}</Text>
-            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>KM FLOWN</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>Km flown</Text>
           </View>
           <View style={styles.summarySep} />
           <View style={styles.summaryItem}>
             <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.countries}</Text>
-            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>COUNTRIES</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>Countries</Text>
           </View>
         </View>
 
@@ -434,37 +586,37 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         {/*charts*/}
         <SectionHeader title="Top 5 Airports" />
         <View style={styles.chartCard}>
-          <HBarChart data={stats.topAirports} color={ACCENT} />
+          <RankedRunwayChart data={stats.topAirports} color={COLORS.amber} wash={COLORS.amberWash} />
         </View>
 
         <SectionHeader title="Top 5 Airlines" />
         <View style={styles.chartCard}>
-          <HBarChart data={stats.topAirlines} color={ACCENT} />
+          <RankedRunwayChart data={stats.topAirlines} color={COLORS.teal} wash={COLORS.tealWash} />
         </View>
 
         <SectionHeader title="Top 5 Aircraft Types" />
         <View style={styles.chartCard}>
-          <HBarChart data={stats.topAircraftList} color={ACCENT} />
+          <FleetTilesChart data={stats.topAircraftList} />
         </View>
 
         <SectionHeader title="Top 5 Manufacturers" />
         <View style={styles.chartCard}>
-          <HBarChart data={stats.topManufacturerList} color={ACCENT} />
+          <ShareStackChart data={stats.topManufacturerList} />
         </View>
 
         <SectionHeader title="Flights per Year" />
         <View style={styles.chartCard}>
-          <VBarChart data={stats.flightsPerYear} color={ACCENT} />
+          <TowerChart data={stats.flightsPerYear} color={COLORS.amber} />
         </View>
 
         <SectionHeader title="Flights per Month" />
         <View style={styles.chartCard}>
-          <VBarChart data={stats.flightsPerMonth} color={ACCENT} />
+          <ActivityRibbonChart data={stats.flightsPerMonth} />
         </View>
 
         <SectionHeader title="Flights per Weekday" />
         <View style={[styles.chartCard, { marginBottom: 40 }]}>
-          <VBarChart data={stats.flightsPerWeekday} color={ACCENT} />
+          <WeekdayDialChart data={stats.flightsPerWeekday} />
         </View>
       </ScrollView>
     </Animated.View>
@@ -477,9 +629,11 @@ const styles = StyleSheet.create({
   sheet: {
     position: 'absolute',
     left: 0, right: 0, top: 0, bottom: 0,
-    backgroundColor: '#111827',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    backgroundColor: COLORS.sheet,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(219, 190, 129, 0.16)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.55,
@@ -491,22 +645,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pill: {
-    width: 44, height: 5,
+    width: 42, height: 5,
     borderRadius: 3,
-    backgroundColor: '#4b5563',
+    backgroundColor: COLORS.amber,
+  },
+  scrollContent: {
+    paddingTop: 2,
   },
 
   //summary row
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    marginHorizontal: 12,
+    marginBottom: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(20, 32, 51, 0.68)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   summaryItem: { flex: 1, alignItems: 'center' },
-  summaryNum: { color: '#f3f4f6', fontSize: 24, fontWeight: '700', width: '100%', textAlign: 'center' },
-  summaryLabel: { color: '#4b5563', fontSize: 9, fontWeight: '700', letterSpacing: 0, marginTop: 2, width: '100%', textAlign: 'center' },
-  summarySep: { width: 1, height: 36, backgroundColor: '#1e2d3d' },
+  summaryNum: { color: COLORS.text, fontSize: 25, fontWeight: '800', width: '100%', textAlign: 'center' },
+  summaryLabel: { color: COLORS.muted, fontSize: 10, fontWeight: '700', letterSpacing: 0, marginTop: 3, width: '100%', textAlign: 'center' },
+  summarySep: { width: 1, height: 38, backgroundColor: COLORS.line },
 
   //stat card rows
   cardRow: {
@@ -528,8 +691,10 @@ const styles = StyleSheet.create({
   //chart sections
   chartCard: {
     marginHorizontal: 12,
-    backgroundColor: '#1a2535',
-    borderRadius: 14,
+    backgroundColor: 'rgba(20, 32, 51, 0.66)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     padding: 14,
     marginBottom: 8,
   },
@@ -538,19 +703,21 @@ const styles = StyleSheet.create({
 const card = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a2535',
-    borderRadius: 12,
+    backgroundColor: 'rgba(20, 32, 51, 0.68)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     padding: 10,
     alignItems: 'center',
     gap: 8,
   },
-  label: { width: '100%', color: '#4b5563', fontSize: 11, textAlign: 'center' },
-  placeholder: { width: '100%', height: 135, backgroundColor: '#243147', borderRadius: 6 },
+  label: { width: '100%', color: COLORS.muted, fontSize: 11, textAlign: 'center', fontWeight: '700' },
+  placeholder: { width: '100%', height: 135, backgroundColor: COLORS.surface2, borderRadius: 6 },
   image: { width: '100%', height: 135 },
   imageBorder: { width: '100%', borderRadius: 8, overflow: 'hidden' },
   codeBox:  { width: '100%', height: 135, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  codeText: { color: '#f3f4f6', fontSize: 18, fontWeight: '700', letterSpacing: 0, width: '100%', textAlign: 'center' },
-  value: { width: '100%', color: '#f3f4f6', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  codeText: { color: COLORS.amber, fontSize: 20, fontWeight: '800', letterSpacing: 0, width: '100%', textAlign: 'center' },
+  value: { width: '100%', color: COLORS.text, fontSize: 12, fontWeight: '700', textAlign: 'center' },
   valueLines: { width: '100%', gap: 8, alignItems: 'center' },
 });
 
@@ -558,15 +725,17 @@ const counter = StyleSheet.create({
   card: {
     width: '30%',
     flexGrow: 1,
-    backgroundColor: '#1a2535',
-    borderRadius: 12,
+    backgroundColor: 'rgba(20, 32, 51, 0.68)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     paddingVertical: 12,
     paddingHorizontal: 8,
     alignItems: 'center',
     gap: 4,
   },
-  num:   { color: ACCENT, fontSize: 22, fontWeight: '700', width: '100%', textAlign: 'center' },
-  label: { color: '#4b5563', fontSize: 9, fontWeight: '700', letterSpacing: 0, textAlign: 'center', width: '100%' },
+  num:   { color: COLORS.teal, fontSize: 22, fontWeight: '800', width: '100%', textAlign: 'center' },
+  label: { color: COLORS.muted, fontSize: 9, fontWeight: '700', letterSpacing: 0, textAlign: 'center', width: '100%' },
 });
 
 const sec = StyleSheet.create({
@@ -585,7 +754,7 @@ const sec = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -594,22 +763,159 @@ const sec = StyleSheet.create({
 });
 
 const chart = StyleSheet.create({
-  empty: { color: '#374151', fontSize: 13, textAlign: 'center', paddingVertical: 12 },
+  empty: { color: COLORS.dim, fontSize: 13, textAlign: 'center', paddingVertical: 12 },
 
-  //horizontal bar chart — label + count on top row, bar below
-  hItem:  {},
-  hMeta:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 7 },
-  hLabel: { color: '#d1d5db', fontSize: 13, fontWeight: '500', flex: 1, marginRight: 10 },
-  hCount: { fontSize: 13, fontWeight: '700' },
-  hTrack: { height: 4, backgroundColor: '#1e2d3d', borderRadius: 2, overflow: 'hidden' },
-  hBar:   { height: '100%', borderRadius: 2 },
+  rankWrap: { gap: 9 },
+  rankRow: {
+    minHeight: 54,
+    borderRadius: 8,
+    padding: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+  },
+  rankBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  rankBadgeText: { fontSize: 12, fontWeight: '800' },
+  rankBody: { flex: 1 },
+  rankMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 7 },
+  rankLabel: { color: COLORS.text, fontSize: 13, fontWeight: '700', flex: 1, marginRight: 10 },
+  rankValue: { fontSize: 13, fontWeight: '800' },
+  runway: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(7, 17, 31, 0.56)',
+    overflow: 'hidden',
+  },
+  runwayFill: { height: '100%', borderRadius: 4 },
+  runwayDash: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    top: 3,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
 
-  //vertical bar chart
-  vContainer: { flexDirection: 'row', alignItems: 'flex-end', height: 130, gap: 3 },
-  vCol:       { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
-  vCount:     { color: '#4b5563', fontSize: 9, marginBottom: 3 },
-  vBarBg:     { width: '80%', flex: 1, justifyContent: 'flex-end' },
-  vBar:       { width: '100%', borderRadius: 3 },
-  vLabel:     { color: '#6b7280', fontSize: 9, marginTop: 5, textAlign: 'center', width: '100%' },
-  vBaseline:  { height: 1, backgroundColor: '#1e2d3d', marginTop: 0 },
+  fleetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  fleetTile: {
+    width: '48%',
+    minHeight: 142,
+    flexGrow: 1,
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: COLORS.blueWash,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+  },
+  fleetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  fleetRank: { color: COLORS.dim, fontSize: 10, fontWeight: '800' },
+  fleetCount: { color: COLORS.blue, fontSize: 16, fontWeight: '900' },
+  fleetImage: { width: '100%', height: 62, marginTop: 4 },
+  fleetLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 4 },
+  fleetTrack: {
+    height: 4,
+    backgroundColor: 'rgba(7, 17, 31, 0.56)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 9,
+  },
+  fleetFill: { height: '100%', backgroundColor: COLORS.blue, borderRadius: 3 },
+
+  shareTrack: {
+    height: 24,
+    flexDirection: 'row',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(7, 17, 31, 0.5)',
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+  },
+  shareSegment: { height: '100%' },
+  shareLegend: { marginTop: 12, gap: 8 },
+  shareItem: { flexDirection: 'row', alignItems: 'center' },
+  shareDot: { width: 9, height: 9, borderRadius: 5, marginRight: 8 },
+  shareLabel: { color: COLORS.text, fontSize: 13, fontWeight: '700', flex: 1 },
+  shareValue: { color: COLORS.muted, fontSize: 12, fontWeight: '800' },
+
+  towerWrap: {
+    height: 166,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 9,
+  },
+  towerCol: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
+  towerCount: { color: COLORS.dim, fontSize: 10, fontWeight: '800', marginBottom: 5 },
+  towerLane: {
+    width: '82%',
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(7, 17, 31, 0.5)',
+    borderRadius: 7,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+  },
+  towerFill: { width: '100%', borderTopLeftRadius: 7, borderTopRightRadius: 7 },
+  towerMarker: {
+    position: 'absolute',
+    left: 4,
+    right: 4,
+    bottom: 7,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.26)',
+  },
+  towerLabel: { color: COLORS.muted, fontSize: 9, fontWeight: '700', marginTop: 7, width: '100%', textAlign: 'center' },
+
+  ribbonWrap: { paddingVertical: 2 },
+  ribbonGrid: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+  ribbonCellWrap: { flex: 1, alignItems: 'center' },
+  ribbonCell: {
+    width: '100%',
+    height: 74,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+  },
+  ribbonValue: { color: COLORS.dim, fontSize: 10, fontWeight: '900' },
+  ribbonLabel: { color: COLORS.muted, fontSize: 8, fontWeight: '800', marginTop: 7, width: '100%', textAlign: 'center' },
+
+  dialGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  dialCard: {
+    width: 74,
+    height: 86,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: 'rgba(7, 17, 31, 0.34)',
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+  },
+  dialRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dialCore: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dialValue: { color: COLORS.dim, fontSize: 12, fontWeight: '900' },
+  dialLabel: { color: COLORS.muted, fontSize: 10, fontWeight: '800', marginTop: 7 },
 });

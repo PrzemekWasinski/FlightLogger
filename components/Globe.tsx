@@ -22,7 +22,7 @@ function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
   );
 }
 
-const ARC_COLOR = new THREE.Color(1, 0, 0);
+const ARC_COLOR = new THREE.Color(0xf0b35a);
 
 // Decodes earth.jpg in JS (jpeg-js) and uploads raw RGBA pixels via the standard
 // gl.texImage2D TypedArray path. This bypasses expo-gl's native stbi_load extension
@@ -168,7 +168,7 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
     });
     renderer.setSize(W, H);
     renderer.setPixelRatio(1);
-    renderer.setClearColor(0x050a18, 1);
+    renderer.setClearColor(0x07111f, 1);
 
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 200);
@@ -181,8 +181,8 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
 
     const earthTexture = await tryLoadEarthTexture(gl, renderer);
     const earthMat = earthTexture
-      ? new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 25, specular: 0x111111 })
-      : new THREE.MeshPhongMaterial({ color: 0x1a3a6e,  shininess: 60, specular: 0x334477 });
+      ? new THREE.MeshPhongMaterial({ map: earthTexture, shininess: 18, specular: 0x16202d })
+      : new THREE.MeshPhongMaterial({ color: 0x19324b,  shininess: 55, specular: 0x4b6178 });
 
     group.add(new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R, 64, 64), earthMat));
 
@@ -190,7 +190,7 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
       new THREE.Mesh(
         new THREE.SphereGeometry(GLOBE_R + 0.002, 36, 18),
         new THREE.MeshBasicMaterial({
-          color: 0x3366cc, wireframe: true, transparent: true, opacity: earthTexture ? 0.04 : 0.08,
+          color: 0xf0b35a, wireframe: true, transparent: true, opacity: earthTexture ? 0.035 : 0.08,
         }),
       ),
     );
@@ -198,7 +198,7 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
     scene.add(
       new THREE.Mesh(
         new THREE.SphereGeometry(GLOBE_R * 1.08, 64, 64),
-        new THREE.MeshPhongMaterial({ color: 0x4499dd, transparent: true, opacity: 0.06 }),
+        new THREE.MeshPhongMaterial({ color: 0x65d0c2, transparent: true, opacity: 0.055 }),
       ),
     );
 
@@ -213,10 +213,10 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
     }
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.12 })));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xd9e8ef, size: 0.12 })));
 
-    scene.add(new THREE.AmbientLight(0x334466, 0.9));
-    const sun = new THREE.DirectionalLight(0xfff0dd, 1.6);
+    scene.add(new THREE.AmbientLight(0x384b5d, 0.92));
+    const sun = new THREE.DirectionalLight(0xffe2b3, 1.55);
     sun.position.set(5, 3, 5);
     scene.add(sun);
 
@@ -237,7 +237,7 @@ export function Globe({ refreshKey = 0 }: GlobeProps) {
       const usedAirports = new Set<string>();
       flights.forEach(({ from, to }) => { usedAirports.add(from); usedAirports.add(to); });
       const dotGeo = new THREE.SphereGeometry(0.005, 8, 8);
-      const dotMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0x65d0c2 });
       usedAirports.forEach(code => {
         const ap = AIRPORTS[code];
         if (!ap) return;
