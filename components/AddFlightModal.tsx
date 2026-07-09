@@ -375,17 +375,19 @@ const s = StyleSheet.create({
     letterSpacing: 0,
   },
   routeMid: {
+    flex: 1.4,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 14,
-    gap: 4,
+    paddingHorizontal: 4,
+    paddingTop: 8,
   },
   routeLine: {
-    width: 22,
-    height: 1,
-    backgroundColor: '#2d3f52',
+    flex: 1,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: 'rgba(240, 179, 90, 0.38)',
   },
-  planeTxt: { color: '#4b5563', fontSize: 16 },
+  planeTxt: { color: '#f0b35a', fontSize: 22, lineHeight: 24, paddingHorizontal: 5 },
 
   //suggestion dropdown — floats over detail card, no layout impact
   sugList: {

@@ -59,7 +59,7 @@ export function ErrorLogsModal({ visible, onClose }: Props) {
       <View style={s.header}>
         <Text style={s.title}>Logs</Text>
         <View style={s.headerRight}>
-          <TouchableOpacity onPress={handleClear}>
+          <TouchableOpacity onPress={handleClear} style={s.clearBtn}>
             <Text style={s.clearTxt}>Clear</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} style={s.closeBtn}>
@@ -96,11 +96,12 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#111827',
   },
-  title: { color: '#f3f4f6', fontSize: 18, fontWeight: '700', flex: 1 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  clearTxt: { color: ACCENT, fontSize: 14, minWidth: 40 },
+  title: { color: '#f3f4f6', fontSize: 18, fontWeight: '700', flex: 1, lineHeight: 32 },
+  headerRight: { height: 32, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  clearBtn: { minWidth: 48, height: 32, alignItems: 'center', justifyContent: 'center' },
+  clearTxt: { color: ACCENT, fontSize: 14, fontWeight: '700', lineHeight: 18 },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#4b5563', fontSize: 17 },
+  closeTxt: { color: '#4b5563', fontSize: 17, lineHeight: 20 },
 
   list: { padding: 16, paddingBottom: 40 },
 

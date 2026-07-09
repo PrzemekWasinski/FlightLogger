@@ -22,7 +22,7 @@ function latLonToVec3(lat: number, lon: number, r: number): THREE.Vector3 {
   );
 }
 
-const ARC_COLOR = new THREE.Color(0xf0b35a);
+const ARC_COLOR = new THREE.Color(1, 0, 0);
 
 // Decodes earth.jpg in JS (jpeg-js) and uploads raw RGBA pixels via the standard
 // gl.texImage2D TypedArray path. This bypasses expo-gl's native stbi_load extension

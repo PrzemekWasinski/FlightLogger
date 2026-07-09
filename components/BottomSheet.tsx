@@ -261,10 +261,10 @@ function CounterCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, color = ACCENT }: { title: string; color?: string }) {
   return (
     <View style={sec.row}>
-      <View style={sec.accent} />
+      <View style={[sec.accent, { backgroundColor: color }]} />
       <Text style={sec.title}>{title}</Text>
     </View>
   );
@@ -460,8 +460,10 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
   }
 
   function toggleSheet() {
-    const midpoint = snapBottomRef.current / 2;
-    snapTo(liveY.current > midpoint ? SNAP_TOP : snapBottomRef.current);
+    translateY.stopAnimation((value) => {
+      const midpoint = snapBottomRef.current / 2;
+      snapTo(value < midpoint ? snapBottomRef.current : SNAP_TOP);
+    });
   }
 
   useEffect(() => {
@@ -584,37 +586,37 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         </View>
 
         {/*charts*/}
-        <SectionHeader title="Top 5 Airports" />
+        <SectionHeader title="Top 5 Airports" color={COLORS.amber} />
         <View style={styles.chartCard}>
           <RankedRunwayChart data={stats.topAirports} color={COLORS.amber} wash={COLORS.amberWash} />
         </View>
 
-        <SectionHeader title="Top 5 Airlines" />
+        <SectionHeader title="Top 5 Airlines" color={COLORS.teal} />
         <View style={styles.chartCard}>
           <RankedRunwayChart data={stats.topAirlines} color={COLORS.teal} wash={COLORS.tealWash} />
         </View>
 
-        <SectionHeader title="Top 5 Aircraft Types" />
+        <SectionHeader title="Top 5 Aircraft Types" color={COLORS.blue} />
         <View style={styles.chartCard}>
           <FleetTilesChart data={stats.topAircraftList} />
         </View>
 
-        <SectionHeader title="Top 5 Manufacturers" />
+        <SectionHeader title="Top 5 Manufacturers" color={COLORS.coral} />
         <View style={styles.chartCard}>
           <ShareStackChart data={stats.topManufacturerList} />
         </View>
 
-        <SectionHeader title="Flights per Year" />
+        <SectionHeader title="Flights per Year" color={COLORS.amber} />
         <View style={styles.chartCard}>
           <TowerChart data={stats.flightsPerYear} color={COLORS.amber} />
         </View>
 
-        <SectionHeader title="Flights per Month" />
+        <SectionHeader title="Flights per Month" color={COLORS.teal} />
         <View style={styles.chartCard}>
           <ActivityRibbonChart data={stats.flightsPerMonth} />
         </View>
 
-        <SectionHeader title="Flights per Weekday" />
+        <SectionHeader title="Flights per Weekday" color={COLORS.blue} />
         <View style={[styles.chartCard, { marginBottom: 40 }]}>
           <WeekdayDialChart data={stats.flightsPerWeekday} />
         </View>

@@ -16,13 +16,31 @@ import {
   View,
 } from 'react-native';
 import { AIRPORTS } from '../data/airports';
+import { AIRLINES } from '../data/airlines';
+import AIRLINE_LOGOS from '../assets/airlineLogos';
 import { DatePickerField } from './DatePickerField';
 import { getAllFlights, deleteFlight, updateFlight, Flight } from '../data/db';
 import { log } from '../utils/logger';
 
-const BUILD_TAG = 'BUILD-MARKER v8 — fixed-width buttons';
+const BUILD_TAG = 'BUILD-MARKER v9 — tabbed-logbook';
 
-const ACCENT = 'rgb(0, 255, 175)';
+const COLORS = {
+  bg: '#07111f',
+  sheet: '#0c1826',
+  surface: 'rgba(20, 32, 51, 0.82)',
+  surface2: 'rgba(24, 40, 61, 0.84)',
+  line: 'rgba(117, 146, 170, 0.24)',
+  text: '#edf4f7',
+  muted: '#8392a5',
+  dim: '#536377',
+  amber: '#f0b35a',
+  teal: '#65d0c2',
+  coral: '#ff7f6e',
+  red: '#ef4444',
+  ink: '#07111f',
+  whiteLine: 'rgba(255,255,255,0.07)',
+};
+const ACCENT = COLORS.amber;
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -79,6 +97,8 @@ interface Suggestion {
   name: string;
 }
 
+interface AirlineSuggestion { name: string; icao: string; }
+
 function searchAirports(query: string): Suggestion[] {
   if (query.length < 2) return [];
   const q     = query.toLowerCase();
@@ -91,6 +111,80 @@ function searchAirports(query: string): Suggestion[] {
     if (out.length >= 5) break;
   }
   return out;
+}
+
+function searchAirlines(query: string): AirlineSuggestion[] {
+  if (query.length < 2) return [];
+  const q = query.toLowerCase();
+  const out: AirlineSuggestion[] = [];
+  for (const a of AIRLINES) {
+    if (a.name.toLowerCase().includes(q)) {
+      out.push({ name: a.name, icao: a.icao });
+      if (out.length >= 5) break;
+    }
+  }
+  return out;
+}
+
+function getAirlineImage(name?: string | null) {
+  if (!name) return null;
+  const airline = AIRLINES.find(a => a.name.toLowerCase() === name.toLowerCase());
+  if (!airline) return null;
+  return AIRLINE_LOGOS[airline.icao] ?? null;
+}
+
+function getAirportName(code?: string | null): string {
+  if (!code) return 'Unknown airport';
+  return AIRPORTS[code]?.name ?? code;
+}
+
+function kmLabel(km?: number): string {
+  if (!km) return '—';
+  const rounded = Math.round(km);
+  return rounded >= 1000 ? `${(rounded / 1000).toFixed(1)}K km` : `${rounded} km`;
+}
+
+type LogbookTab = 'flights' | 'aircraft' | 'airlines' | 'airports';
+type CountItem = { key: string; label: string; sublabel: string; count: number; image?: any; code?: string };
+
+const TABS: { key: LogbookTab; label: string }[] = [
+  { key: 'flights',  label: 'Flights' },
+  { key: 'aircraft', label: 'Aircraft' },
+  { key: 'airlines', label: 'Airlines' },
+  { key: 'airports', label: 'Airports' },
+];
+
+function makeCountItems(
+  flights: Flight[],
+  getKeys: (flight: Flight) => string[],
+  describe: (key: string, count: number) => CountItem,
+): CountItem[] {
+  const counts = new Map<string, number>();
+  flights.forEach(flight => {
+    getKeys(flight).forEach(key => {
+      if (!key.trim()) return;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+  });
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([key, count]) => describe(key, count));
+}
+
+function topPercent(value: number, max: number): `${number}%` {
+  return `${Math.max(8, Math.min(100, (value / Math.max(max, 1)) * 100))}%` as `${number}%`;
+}
+
+function tabColor(tab: LogbookTab): string {
+  if (tab === 'aircraft') return '#8bb7ff';
+  if (tab === 'airlines') return COLORS.teal;
+  return COLORS.amber;
+}
+
+function tabWash(tab: LogbookTab): string {
+  if (tab === 'aircraft') return 'rgba(139, 183, 255, 0.12)';
+  if (tab === 'airlines') return 'rgba(101, 208, 194, 0.12)';
+  return 'rgba(240, 179, 90, 0.12)';
 }
 
 const SCREEN_H   = Dimensions.get('window').height;
@@ -115,58 +209,84 @@ function FlightRow({ item, onEdit, onDelete }: RowProps) {
   const aircraftImg = getAircraftImage(item.aircraft);
   return (
     <View style={s.card}>
-      <View style={s.cardInner}>
-        {/*aircraft icon column*/}
-        <View style={s.iconCol}>
-          {aircraftImg
-            ? <Image source={aircraftImg} style={s.aircraftIcon} resizeMode="contain" />
-            : <View style={s.aircraftIconPlaceholder} />}
+      <View style={s.flightTop}>
+        <View style={s.dateChip}>
+          <Text style={s.dateChipText} numberOfLines={1} allowFontScaling={false}>{formatDate(item.date)}</Text>
         </View>
+        <Text style={s.distanceText} allowFontScaling={false}>{kmLabel(item.distance_km)}</Text>
+      </View>
 
-        {/*content column*/}
-        <View style={s.contentCol}>
-          <View style={s.routeRow}>
-            <Text style={s.iata}>{item.from}</Text>
-            <View style={s.routeMid}>
-              <View style={s.routeLine} />
-              <Text style={s.planeTxt}>✈</Text>
-              <View style={s.routeLine} />
-            </View>
-            <Text style={s.iata}>{item.to}</Text>
+      <View style={s.routeRow}>
+        <View style={s.airportBlock}>
+          <Text style={s.airportCode} allowFontScaling={false}>{item.from}</Text>
+        </View>
+        <View style={s.routeMid}>
+          <View style={s.routeLine} />
+          <Text style={s.planeTxt}>✈</Text>
+          <View style={s.routeLine} />
+        </View>
+        <View style={[s.airportBlock, s.airportBlockRight]}>
+          <Text style={[s.airportCode, s.airportCodeRight]} allowFontScaling={false}>{item.to}</Text>
+        </View>
+      </View>
+
+      <View style={s.airportNameRow}>
+        <Text style={s.airportName} numberOfLines={2}>{getAirportName(item.from)}</Text>
+        <Text style={[s.airportName, s.airportNameRight]} numberOfLines={2}>{getAirportName(item.to)}</Text>
+      </View>
+
+      <View style={s.flightLower}>
+        <View style={s.aircraftMedia}>
+          {aircraftImg ? <Image source={aircraftImg} style={s.aircraftIcon} resizeMode="contain" /> : <View style={s.aircraftIconPlaceholder} />}
+        </View>
+        <View style={s.flightLowerBody}>
+          <View style={s.flightMeta}>
+            <Text style={s.aircraftLine} numberOfLines={1}>{item.aircraft ?? 'Aircraft not logged'}</Text>
+            <Text style={s.infoLine} numberOfLines={1}>{item.airline ?? 'Airline not logged'}</Text>
+            {item.registration ? <Text style={s.regLine} numberOfLines={1}>{item.registration}</Text> : null}
           </View>
 
-          {item.aircraft     ? <Text style={s.aircraftLine}>{item.aircraft}</Text> : null}
-          {item.registration ? <Text style={s.regLine}>{item.registration}</Text> : null}
-          {item.airline      ? <Text style={s.infoLine}>{item.airline}</Text>  : null}
-
-          <Text style={s.date} allowFontScaling={false}>{formatDate(item.date)}</Text>
-          <View style={s.cardBottom}>
-            <View style={s.actions}>
-              <TouchableOpacity
-                onPress={onEdit}
-                style={s.actionBtn}
-                onLayout={e => log('info', `EDIT btn box w=${e.nativeEvent.layout.width.toFixed(1)}`)}
-              >
-                <Text
-                  style={s.editTxt}
-                  allowFontScaling={false}
-                  onLayout={e => log('info', `EDIT text w=${e.nativeEvent.layout.width.toFixed(1)} h=${e.nativeEvent.layout.height.toFixed(1)}`)}
-                >Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={onDelete}
-                style={s.actionBtn}
-                onLayout={e => log('info', `DELETE btn box w=${e.nativeEvent.layout.width.toFixed(1)}`)}
-              >
-                <Text
-                  style={s.deleteTxt}
-                  allowFontScaling={false}
-                  onLayout={e => log('info', `DELETE text w=${e.nativeEvent.layout.width.toFixed(1)} h=${e.nativeEvent.layout.height.toFixed(1)}`)}
-                >Delete</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={s.actions}>
+            <TouchableOpacity onPress={onEdit} style={s.actionBtn}>
+              <Text style={s.editTxt} allowFontScaling={false}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onDelete} style={s.actionBtn}>
+              <Text style={s.deleteTxt} allowFontScaling={false}>Delete</Text>
+            </TouchableOpacity>
           </View>
         </View>
+      </View>
+    </View>
+  );
+}
+
+function TabButton({ tab, active, onPress }: { tab: { key: LogbookTab; label: string }; active: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={[s.tabBtn, active && s.tabBtnActive]} onPress={onPress} activeOpacity={0.82}>
+      <Text style={[s.tabTxt, active && s.tabTxtActive]} allowFontScaling={false} numberOfLines={1}>{tab.label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function CountTile({ item, index, max, kind, color, wash }: { item: CountItem; index: number; max: number; kind: 'aircraft' | 'airline' | 'airport'; color: string; wash: string }) {
+  return (
+    <View style={[s.entityTile, { backgroundColor: wash }]}>
+      <View style={s.entityTileTop}>
+        <Text style={s.entityTileRank} allowFontScaling={false}>0{index + 1}</Text>
+        <Text style={[s.entityTileCount, { color }]} allowFontScaling={false}>{item.count}</Text>
+      </View>
+      <View style={s.entityVisual}>
+        {kind === 'airport'
+          ? <Text style={[s.entityTileCode, { color }]} allowFontScaling={false}>{item.code}</Text>
+          : item.image
+            ? <Image source={item.image} style={kind === 'airline' ? s.entityTileLogo : s.entityTileAircraft} resizeMode="contain" />
+            : <Text style={[s.entityTileCode, { color }]} allowFontScaling={false}>{item.label.slice(0, 3).toUpperCase()}</Text>
+        }
+      </View>
+      <Text style={s.entityTileLabel} numberOfLines={1} adjustsFontSizeToFit>{item.label}</Text>
+      <Text style={s.entityTileSub} numberOfLines={1}>{item.sublabel}</Text>
+      <View style={s.entityTileTrack}>
+        <View style={[s.entityTileFill, { width: topPercent(item.count, max), backgroundColor: color }]} />
       </View>
     </View>
   );
@@ -180,6 +300,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
 
   const [flights,         setFlights]         = useState<Flight[]>([]);
+  const [activeTab,       setActiveTab]       = useState<LogbookTab>('flights');
   const [editingFlight,   setEditingFlight]   = useState<Flight | null>(null);
   const [editFrom,        setEditFrom]        = useState('');
   const [editTo,          setEditTo]          = useState('');
@@ -188,8 +309,10 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   const [editAirline,     setEditAirline]     = useState('');
   const [editDate,        setEditDate]        = useState('');
   const [editActiveSugs,  setEditActiveSugs]  = useState<Suggestion[]>([]);
-  const [editActiveField, setEditActiveField] = useState<'from' | 'to' | null>(null);
+  const [editAirlineSugs, setEditAirlineSugs] = useState<AirlineSuggestion[]>([]);
+  const [editActiveField, setEditActiveField] = useState<'from' | 'to' | 'airline' | null>(null);
   const [editRouteH,      setEditRouteH]      = useState(0);
+  const [editAirlineSugTop, setEditAirlineSugTop] = useState(0);
 
   useEffect(() => {
     Animated.spring(translateY, {
@@ -217,6 +340,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     setEditAirline(flight.airline   ?? '');
     setEditDate(flight.date         ?? '');
     setEditActiveSugs([]);
+    setEditAirlineSugs([]);
     setEditActiveField(null);
     setEditingFlight(flight);
   }
@@ -255,6 +379,12 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     setEditActiveSugs(searchAirports(text));
   }
 
+  function onEditAirlineChange(text: string) {
+    setEditAirline(text);
+    setEditActiveField('airline');
+    setEditAirlineSugs(searchAirlines(text));
+  }
+
   function selectEditSuggestion(code: string) {
     if (editActiveField === 'from') setEditFrom(code);
     else if (editActiveField === 'to') setEditTo(code);
@@ -262,15 +392,105 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     setEditActiveField(null);
   }
 
+  function selectEditAirline(name: string) {
+    setEditAirline(name);
+    setEditAirlineSugs([]);
+    setEditActiveField(null);
+  }
+
   function onEditInputBlur() {
     //delay lets the suggestion tap register before the list disappears
-    setTimeout(() => setEditActiveSugs([]), 150);
+    setTimeout(() => { setEditActiveSugs([]); setEditAirlineSugs([]); }, 150);
   }
 
   function handleDelete(id: number) {
     deleteFlight(id);
     refresh();
     onFlightChange();
+  }
+
+  const aircraftItems = makeCountItems(
+    flights,
+    flight => flight.aircraft ? [flight.aircraft] : [],
+    (key, count) => ({
+      key,
+      label: key,
+      sublabel: `${count} ${count === 1 ? 'flight' : 'flights'} logged`,
+      count,
+      image: getAircraftImage(key),
+    }),
+  );
+
+  const airlineItems = makeCountItems(
+    flights,
+    flight => flight.airline ? [flight.airline] : [],
+    (key, count) => ({
+      key,
+      label: key,
+      sublabel: `${count} ${count === 1 ? 'sector' : 'sectors'}`,
+      count,
+      image: getAirlineImage(key),
+    }),
+  );
+
+  const airportItems = makeCountItems(
+    flights,
+    flight => [flight.from, flight.to],
+    (key, count) => ({
+      key,
+      code: key,
+      label: getAirportName(key),
+      sublabel: `${key} · ${count} ${count === 1 ? 'visit' : 'visits'}`,
+      count,
+    }),
+  );
+
+  const summary = {
+    flights: flights.length,
+    aircraft: aircraftItems.length,
+    airlines: airlineItems.length,
+    airports: airportItems.length,
+  };
+
+  const currentData = activeTab === 'flights'
+    ? flights
+    : activeTab === 'aircraft'
+      ? aircraftItems
+      : activeTab === 'airlines'
+        ? airlineItems
+        : airportItems;
+  const currentCountMax = activeTab === 'flights'
+    ? 1
+    : Math.max(...(currentData as CountItem[]).map(item => item.count), 1);
+
+  function renderItem({ item, index }: { item: Flight | CountItem; index: number }) {
+    if (activeTab === 'flights') {
+      const flight = item as Flight;
+      return (
+        <FlightRow
+          item={flight}
+          onEdit={() => openEdit(flight)}
+          onDelete={() => handleDelete(flight.id)}
+        />
+      );
+    }
+    return (
+      <CountTile
+        item={item as CountItem}
+        index={index}
+        max={currentCountMax}
+        kind={activeTab === 'aircraft' ? 'aircraft' : activeTab === 'airlines' ? 'airline' : 'airport'}
+        color={tabColor(activeTab)}
+        wash={tabWash(activeTab)}
+      />
+    );
+  }
+
+  function emptyText(): string {
+    if (activeTab === 'flights') return 'no flights logged yet';
+    if (activeTab === 'aircraft') return 'no aircraft logged yet';
+    if (activeTab === 'airlines') return 'no airlines logged yet';
+    return 'no airports logged yet';
   }
 
   return (
@@ -280,27 +500,32 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     >
       {/*header*/}
       <View style={s.header}>
-        <Text style={s.title}>Logbook</Text>
+        <View style={s.titleBlock}>
+          <Text style={s.title} numberOfLines={1} allowFontScaling={false}>Logbook</Text>
+          <Text style={s.subtitle} numberOfLines={1} allowFontScaling={false}>{summary.flights} flights · {summary.airports} airports</Text>
+        </View>
         <TouchableOpacity onPress={onClose} style={s.closeBtn}>
           <Text style={s.closeTxt}>✕</Text>
         </TouchableOpacity>
       </View>
 
-      {/*flight list*/}
+      <View style={s.tabs}>
+        {TABS.map(tab => (
+          <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => setActiveTab(tab.key)} />
+        ))}
+      </View>
+
       <FlatList
-        data={flights}
-        keyExtractor={item => String(item.id)}
-        renderItem={({ item }) => (
-          <FlightRow
-            item={item}
-            onEdit={() => openEdit(item)}
-            onDelete={() => handleDelete(item.id)}
-          />
-        )}
-        ItemSeparatorComponent={RowGap}
+        key={activeTab === 'flights' ? 'flights' : 'tiles'}
+        data={currentData}
+        numColumns={activeTab === 'flights' ? 1 : 2}
+        columnWrapperStyle={activeTab === 'flights' ? undefined : s.tileRow}
+        keyExtractor={item => String(activeTab === 'flights' ? (item as Flight).id : (item as CountItem).key)}
+        renderItem={renderItem}
+        ItemSeparatorComponent={activeTab === 'flights' ? RowGap : undefined}
         contentContainerStyle={s.listContent}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<Text style={s.empty}>no flights logged yet</Text>}
+        ListEmptyComponent={<Text style={s.empty}>{emptyText()}</Text>}
       />
 
       {/*edit panel — absolute so it overlays the list*/}
@@ -371,49 +596,70 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
               </View>
 
               {/*detail inputs*/}
-              <View style={s.detailCard}>
-                <View style={s.detailRow}>
-                  <Text style={s.detailTag}>AIRCRAFT</Text>
-                  <TextInput
-                    style={s.detailInput}
-                    value={editAircraft}
-                    onChangeText={setEditAircraft}
-                    placeholder="Boeing 737-800"
-                    placeholderTextColor="#253548"
+              <View style={s.detailWrapper}>
+                <View style={s.detailCard}>
+                  <View style={s.detailRow}>
+                    <Text style={s.detailTag}>AIRCRAFT</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={editAircraft}
+                      onChangeText={setEditAircraft}
+                      placeholder="Boeing 737-800"
+                      placeholderTextColor="#253548"
+                    />
+                  </View>
+                  <View style={s.detailRule} />
+                  <View style={s.detailRow}>
+                    <Text style={s.detailTag}>REGISTRATION</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={editRegistration}
+                      onChangeText={setEditRegistration}
+                      placeholder="G-XLEA"
+                      placeholderTextColor="#253548"
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  <View style={s.detailRule} />
+                  <View
+                    style={s.detailRow}
+                    onLayout={e => setEditAirlineSugTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
+                  >
+                    <Text style={s.detailTag}>AIRLINE</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={editAirline}
+                      onChangeText={onEditAirlineChange}
+                      onFocus={() => { setEditActiveField('airline'); setEditAirlineSugs(searchAirlines(editAirline)); }}
+                      onBlur={onEditInputBlur}
+                      placeholder="British Airways"
+                      placeholderTextColor="#253548"
+                    />
+                  </View>
+                  <View style={s.detailRule} />
+                  <DatePickerField
+                    value={editDate}
+                    onChange={setEditDate}
+                    rowStyle={s.detailRow}
+                    tagStyle={s.detailTag}
+                    inputStyle={s.detailInput}
                   />
                 </View>
-                <View style={s.detailRule} />
-                <View style={s.detailRow}>
-                  <Text style={s.detailTag}>REGISTRATION</Text>
-                  <TextInput
-                    style={s.detailInput}
-                    value={editRegistration}
-                    onChangeText={setEditRegistration}
-                    placeholder="G-XLEA"
-                    placeholderTextColor="#253548"
-                    autoCapitalize="characters"
-                    autoCorrect={false}
-                  />
-                </View>
-                <View style={s.detailRule} />
-                <View style={s.detailRow}>
-                  <Text style={s.detailTag}>AIRLINE</Text>
-                  <TextInput
-                    style={s.detailInput}
-                    value={editAirline}
-                    onChangeText={setEditAirline}
-                    placeholder="British Airways"
-                    placeholderTextColor="#253548"
-                  />
-                </View>
-                <View style={s.detailRule} />
-                <DatePickerField
-                  value={editDate}
-                  onChange={setEditDate}
-                  rowStyle={s.detailRow}
-                  tagStyle={s.detailTag}
-                  inputStyle={s.detailInput}
-                />
+
+                {editAirlineSugs.length > 0 && (
+                  <View style={[s.sugList, { top: editAirlineSugTop }]}>
+                    {editAirlineSugs.map((sug, idx) => (
+                      <React.Fragment key={sug.icao}>
+                        {idx > 0 && <View style={s.sugRule} />}
+                        <TouchableOpacity style={s.sugItem} onPress={() => selectEditAirline(sug.name)}>
+                          <Text style={s.sugCode}>{sug.icao}</Text>
+                          <Text style={s.sugName} numberOfLines={1}>{sug.name}</Text>
+                        </TouchableOpacity>
+                      </React.Fragment>
+                    ))}
+                  </View>
+                )}
               </View>
 
               <TouchableOpacity style={s.saveBtn} onPress={saveEdit}>
@@ -433,7 +679,7 @@ const s = StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: '#050a18',
+    backgroundColor: COLORS.bg,
   },
 
   //header
@@ -445,13 +691,24 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#111827',
+    borderBottomColor: COLORS.line,
+  },
+  titleBlock: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 12,
   },
   title: {
-    color: '#f3f4f6',
-    fontSize: 18,
+    color: COLORS.text,
+    fontSize: 21,
+    fontWeight: '800',
+  },
+  subtitle: {
+    color: COLORS.muted,
+    fontSize: 11,
     fontWeight: '700',
-    flex: 1,
+    marginTop: 3,
+    width: '100%',
   },
   closeBtn: {
     width: 32,
@@ -460,8 +717,38 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   closeTxt: {
-    color: '#4b5563',
+    color: COLORS.muted,
     fontSize: 17,
+  },
+  tabs: {
+    flexDirection: 'row',
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 6,
+  },
+  tabBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+    paddingHorizontal: 4,
+  },
+  tabBtnActive: {
+    backgroundColor: COLORS.amber,
+    borderColor: '#ffd08a',
+  },
+  tabTxt: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  tabTxtActive: {
+    color: COLORS.ink,
   },
 
   //list
@@ -470,8 +757,12 @@ const s = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 40,
   },
+  tileRow: {
+    gap: 8,
+    marginBottom: 8,
+  },
   empty: {
-    color: '#374151',
+    color: COLORS.dim,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 60,
@@ -479,121 +770,212 @@ const s = StyleSheet.create({
 
   //flight card
   card: {
-    backgroundColor: '#111827',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+    padding: 12,
   },
-  cardInner: {
+  flightTop: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  iconCol: {
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  dateChip: {
+    maxWidth: '70%',
+    borderRadius: 999,
+    backgroundColor: 'rgba(240, 179, 90, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(240, 179, 90, 0.24)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  dateChipText: {
+    color: COLORS.amber,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  distanceText: {
+    color: COLORS.teal,
+    fontSize: 12,
+    fontWeight: '800',
   },
   aircraftIcon: {
-    width: 60,
-    height: 60,
+    width: 92,
+    height: 86,
   },
   aircraftIconPlaceholder: {
-    width: 60,
-    height: 60,
-  },
-  contentCol: {
-    flex: 1,
+    width: 92,
+    height: 86,
   },
   routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iata: {
-    color: '#f3f4f6',
-    fontSize: 20,
-    fontWeight: '700',
+  airportBlock: {
+    width: 78,
+  },
+  airportBlockRight: {
+    alignItems: 'flex-end',
+  },
+  airportCode: {
+    color: COLORS.text,
+    fontSize: 25,
+    fontWeight: '900',
     letterSpacing: 1,
-    minWidth: 52,
+  },
+  airportCodeRight: {
+    textAlign: 'right',
+  },
+  airportName: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 13,
+    flex: 1,
+    paddingRight: 8,
+  },
+  airportNameRight: {
+    textAlign: 'right',
+    paddingRight: 0,
+    paddingLeft: 8,
+  },
+  airportNameRow: {
+    flexDirection: 'row',
+    marginTop: 5,
   },
   routeMid: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
+    paddingTop: 0,
   },
   routeLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: '#1e2d3d',
+    height: 2,
+    backgroundColor: 'rgba(240, 179, 90, 0.38)',
+    borderRadius: 2,
   },
   planeTxt: {
-    color: '#374151',
-    fontSize: 13,
-    paddingHorizontal: 4,
+    color: COLORS.amber,
+    fontSize: 20,
+    lineHeight: 22,
+    paddingHorizontal: 5,
+  },
+  flightLower: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.line,
+  },
+  aircraftMedia: {
+    width: 98,
+    minHeight: 92,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  flightLowerBody: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'space-between',
+  },
+  flightMeta: {
+    flex: 1,
+    minWidth: 0,
   },
   infoLine: {
-    color: '#f3f4f6',
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 2,
+    color: COLORS.text,
+    fontSize: 13,
+    lineHeight: 19,
     width: '100%',
   },
   aircraftLine: {
-    color: ACCENT,
+    color: COLORS.amber,
     fontSize: 15,
-    lineHeight: 22,
-    marginTop: 2,
+    lineHeight: 20,
+    fontWeight: '800',
     width: '100%',
   },
   regLine: {
-    color: '#9ca3af',
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginTop: 2,
-    width: '100%',
-  },
-  cardBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: 10,
-  },
-    date: {
-    color: '#f3f4f6',
+    color: COLORS.teal,
     fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginTop: 1,
     width: '100%',
-    marginTop: 8,
   },
   actions: {
     flexDirection: 'row',
-    gap: 6,
-    flexShrink: 0,
+    gap: 8,
+    justifyContent: 'flex-end',
+    marginTop: 10,
   },
   actionBtn: {
-    width: 96,
+    minWidth: 86,
     paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#1a2535',
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   editTxt: {
-    color: ACCENT,
+    color: COLORS.amber,
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
     width: '100%',
   },
   deleteTxt: {
-    color: '#ef4444',
+    color: COLORS.red,
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
     width: '100%',
   },
+  entityTile: {
+    width: '48%',
+    minHeight: 150,
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+    padding: 10,
+  },
+  entityTileTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  entityTileRank: { color: COLORS.dim, fontSize: 10, fontWeight: '800' },
+  entityTileCount: { fontSize: 16, fontWeight: '900' },
+  entityVisual: {
+    height: 62,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  entityTileAircraft: { width: '100%', height: 62 },
+  entityTileLogo: { width: '100%', height: 54 },
+  entityTileCode: { fontSize: 27, fontWeight: '900', letterSpacing: 1 },
+  entityTileLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 4 },
+  entityTileSub: { color: COLORS.muted, fontSize: 10, fontWeight: '700', textAlign: 'center', marginTop: 2 },
+  entityTileTrack: {
+    height: 4,
+    backgroundColor: 'rgba(7, 17, 31, 0.56)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginTop: 9,
+  },
+  entityTileFill: { height: '100%', borderRadius: 3 },
 
   //edit panel
   editOverlay: {
@@ -603,12 +985,14 @@ const s = StyleSheet.create({
   },
   editBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5,10,24,0.7)',
+    backgroundColor: 'rgba(7,17,31,0.74)',
   },
   editSheet: {
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.sheet,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: Platform.OS === 'android' ? 72 : 44,
@@ -620,9 +1004,9 @@ const s = StyleSheet.create({
     marginBottom: 18,
   },
   editTitle: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
   //route card (edit) — wrapper lifts suggestions above siblings via zIndex
@@ -631,8 +1015,10 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   routeCard: {
-    backgroundColor: '#1a2535',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
     padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
@@ -641,7 +1027,7 @@ const s = StyleSheet.create({
   routeSide: { flex: 1 },
   routeSideRight: { alignItems: 'flex-end' },
   routeTag: {
-    color: '#4b5563',
+    color: COLORS.muted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
@@ -649,7 +1035,7 @@ const s = StyleSheet.create({
   },
   routeTagRight: { textAlign: 'right' },
   iataInput: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 34,
     fontWeight: '700',
     letterSpacing: 2,
@@ -669,9 +1055,11 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: '#1a2535',
+    backgroundColor: COLORS.surface2,
     borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
   },
   sugItem: {
     flexDirection: 'row',
@@ -681,39 +1069,46 @@ const s = StyleSheet.create({
     gap: 12,
   },
   sugCode: {
-    color: ACCENT,
+    color: COLORS.amber,
     fontSize: 13,
     fontWeight: '700',
     width: 36,
   },
   sugName: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 13,
     flex: 1,
   },
   sugRule: {
     height: 1,
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.line,
     marginLeft: 16,
   },
   routeMidEdit: {
+    flex: 1.4,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 14,
-    gap: 4,
+    paddingHorizontal: 4,
+    paddingTop: 8,
   },
   routeLineEdit: {
-    width: 22,
-    height: 1,
-    backgroundColor: '#2d3f52',
+    flex: 1,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: 'rgba(240, 179, 90, 0.38)',
   },
-  planeTxtEdit: { color: '#4b5563', fontSize: 16 },
+  planeTxtEdit: { color: COLORS.amber, fontSize: 22, lineHeight: 24, paddingHorizontal: 5 },
 
   //detail card (edit)
-  detailCard: {
-    backgroundColor: '#1a2535',
-    borderRadius: 16,
+  detailWrapper: {
+    zIndex: 6,
     marginBottom: 10,
+  },
+  detailCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
     overflow: 'hidden',
   },
   detailRow: {
@@ -721,43 +1116,43 @@ const s = StyleSheet.create({
     paddingVertical: 14,
   },
   detailTag: {
-    color: '#4b5563',
+    color: COLORS.muted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
     marginBottom: 6,
   },
   detailInput: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 15,
     padding: 0,
   },
   detailRule: {
     height: 1,
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.line,
   },
 
   //save button
   saveBtn: {
-    backgroundColor: '#0f1e30',
-    borderRadius: 14,
+    backgroundColor: 'rgba(240, 179, 90, 0.12)',
+    borderRadius: 8,
     paddingVertical: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: 'rgba(0, 255, 175, 0.2)',
+    borderColor: 'rgba(240, 179, 90, 0.28)',
   },
   saveTxt: {
-    color: ACCENT,
+    color: COLORS.amber,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
     flex: 1,
   },
   saveIcon: {
-    color: ACCENT,
+    color: COLORS.amber,
     fontSize: 17,
   },
 });
