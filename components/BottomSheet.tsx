@@ -13,24 +13,26 @@ import {
 } from 'react-native';
 
 const COLORS = {
-  bg: '#07111f',
-  sheet: 'rgba(12, 24, 38, 0.86)',
-  surface: 'rgba(20, 32, 51, 0.78)',
-  surface2: 'rgba(24, 40, 61, 0.74)',
-  line: 'rgba(117, 146, 170, 0.24)',
-  text: '#edf4f7',
-  muted: '#8392a5',
-  dim: '#536377',
-  amber: '#f0b35a',
-  teal: '#65d0c2',
-  coral: '#ff7f6e',
-  blue: '#8bb7ff',
-  ink: '#07111f',
-  whiteLine: 'rgba(255,255,255,0.07)',
-  amberWash: 'rgba(240, 179, 90, 0.12)',
-  tealWash: 'rgba(101, 208, 194, 0.12)',
-  blueWash: 'rgba(139, 183, 255, 0.12)',
-  coralWash: 'rgba(255, 127, 110, 0.12)',
+  bg: '#050505',
+  sheet: 'rgba(8, 8, 9, 0.90)',
+  surface: 'rgba(20, 20, 22, 0.78)',
+  surface2: 'rgba(30, 30, 33, 0.74)',
+  line: 'rgba(255, 255, 255, 0.14)',
+  text: '#f5f5f5',
+  muted: '#a8a8a8',
+  dim: '#6f6f6f',
+  amber: '#ff8a3d',
+  teal: '#ff8a3d',
+  coral: '#ff4f7b',
+  blue: '#ff8a3d',
+  purple: '#b35cff',
+  redAccent: '#ff375f',
+  ink: '#050505',
+  whiteLine: 'rgba(255,255,255,0.10)',
+  amberWash: 'rgba(255, 138, 61, 0.12)',
+  tealWash: 'rgba(255, 138, 61, 0.12)',
+  blueWash: 'rgba(255, 138, 61, 0.12)',
+  coralWash: 'rgba(255, 79, 123, 0.12)',
 };
 const ACCENT = COLORS.amber;
 import { AIRPORTS } from '../data/airports';
@@ -283,10 +285,10 @@ function CounterCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-function SectionHeader({ title, color = ACCENT }: { title: string; color?: string }) {
+function SectionHeader({ title }: { title: string; color?: string }) {
   return (
     <View style={sec.row}>
-      <View style={[sec.accent, { backgroundColor: color }]} />
+      <View style={sec.accent} />
       <Text style={sec.title} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{title}</Text>
     </View>
   );
@@ -331,7 +333,7 @@ function FleetTilesChart({ data }: { data: { label: string; value: number }[] })
       {data.map(({ label, value }) => (
         <View key={label} style={chart.fleetTile}>
           <View style={chart.fleetTop}>
-            <Text style={chart.fleetCount} allowFontScaling={false}>{value}</Text>
+            <Text style={chart.fleetCount} allowFontScaling={false}>{value} {value === 1 ? 'Flight' : 'Flights'}</Text>
           </View>
           <Image source={getAircraftImage(label)} style={chart.fleetImage} resizeMode="contain" />
           <Text style={chart.fleetLabel} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>{label}</Text>
@@ -347,7 +349,7 @@ function FleetTilesChart({ data }: { data: { label: string; value: number }[] })
 function ShareStackChart({ data }: { data: { label: string; value: number }[] }) {
   if (!data.length) return <EmptyChart />;
   const total = Math.max(data.reduce((sum, item) => sum + item.value, 0), 1);
-  const palette = [COLORS.amber, COLORS.teal, COLORS.blue, COLORS.coral, COLORS.muted];
+  const palette = [COLORS.amber, COLORS.coral, COLORS.purple, COLORS.redAccent, '#ffb15f'];
   return (
     <View>
       <View style={chart.shareTrack}>
@@ -412,7 +414,7 @@ function ActivityRibbonChart({ data }: { data: { label: string; value: number }[
                 chart.ribbonCell,
                 {
                   opacity: active ? 0.45 + level * 0.55 : 0.32,
-                  backgroundColor: active ? COLORS.teal : 'rgba(83, 99, 119, 0.22)',
+                  backgroundColor: active ? COLORS.amber : 'rgba(255, 255, 255, 0.10)',
                   transform: [{ scaleY: active ? 0.72 + level * 0.28 : 0.72 }],
                 },
               ]}>
@@ -435,7 +437,7 @@ function WeekdayDialChart({ data }: { data: { label: string; value: number }[] }
     <View style={chart.dialGrid}>
       {data.map(({ label, value }) => {
         const pct = value / max;
-        const color = value > 0 ? (pct > 0.66 ? COLORS.amber : pct > 0.33 ? COLORS.teal : COLORS.blue) : COLORS.dim;
+        const color = value > 0 ? (pct > 0.66 ? COLORS.amber : pct > 0.33 ? COLORS.coral : COLORS.purple) : COLORS.dim;
         return (
           <View key={label} style={chart.dialCard}>
             <View style={[chart.dialRing, { borderColor: color, opacity: value > 0 ? 1 : 0.42 }]}>
@@ -613,12 +615,12 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
           <RankedRunwayChart data={stats.topAirports} color={COLORS.amber} wash={COLORS.amberWash} />
         </View>
 
-        <SectionHeader title="Top 5 Airlines" color={COLORS.teal} />
+        <SectionHeader title="Top 5 Airlines" color={COLORS.amber} />
         <View style={styles.unframedChart}>
-          <RankedRunwayChart data={stats.topAirlines} color={COLORS.teal} wash={COLORS.tealWash} />
+          <RankedRunwayChart data={stats.topAirlines} color={COLORS.amber} wash={COLORS.amberWash} />
         </View>
 
-        <SectionHeader title="Top 5 Aircraft Types" color={COLORS.blue} />
+        <SectionHeader title="Top 5 Aircraft Types" color={COLORS.amber} />
         <View style={styles.unframedChart}>
           <FleetTilesChart data={stats.topAircraftList} />
         </View>
@@ -628,7 +630,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
           <ShareStackChart data={stats.topManufacturerList} />
         </View>
 
-        <SectionHeader title="Class Breakdown" color={COLORS.blue} />
+        <SectionHeader title="Class Breakdown" color={COLORS.purple} />
         <View style={styles.chartCard}>
           <ShareStackChart data={stats.cabinClassList} />
         </View>
@@ -638,12 +640,12 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
           <TowerChart data={stats.flightsPerYear} color={COLORS.amber} />
         </View>
 
-        <SectionHeader title="Flights per Month" color={COLORS.teal} />
+        <SectionHeader title="Flights per Month" color={COLORS.amber} />
         <View style={styles.chartCard}>
           <ActivityRibbonChart data={stats.flightsPerMonth} />
         </View>
 
-        <SectionHeader title="Flights per Weekday" color={COLORS.blue} />
+        <SectionHeader title="Flights per Weekday" color={COLORS.amber} />
         <View style={[styles.chartCard, { marginBottom: 40 }]}>
           <WeekdayDialChart data={stats.flightsPerWeekday} />
         </View>
@@ -662,7 +664,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderWidth: 1,
-    borderColor: 'rgba(219, 190, 129, 0.16)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.55,
@@ -851,17 +853,17 @@ const chart = StyleSheet.create({
   fleetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   fleetTile: {
     width: '48%',
-    minHeight: 154,
+    minHeight: 164,
     flexGrow: 1,
     borderRadius: 8,
     padding: 8,
-    backgroundColor: COLORS.blueWash,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderColor: COLORS.whiteLine,
   },
   fleetTop: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
   fleetCount: { color: COLORS.blue, fontSize: 16, fontWeight: '900' },
-  fleetImage: { width: '108%', alignSelf: 'center', height: COMPACT_W ? 74 : 84, marginTop: 1 },
+  fleetImage: { width: '118%', alignSelf: 'center', height: COMPACT_W ? 88 : 100, marginTop: -1 },
   fleetLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 2 },
   fleetTrack: {
     height: 4,

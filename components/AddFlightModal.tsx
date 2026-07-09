@@ -19,16 +19,16 @@ import { insertFlight } from '../data/db';
 import { DatePickerField } from './DatePickerField';
 
 const COLORS = {
-  sheet: '#0c1826',
-  surface: 'rgba(20, 32, 51, 0.82)',
-  surface2: 'rgba(24, 40, 61, 0.84)',
-  line: 'rgba(117, 146, 170, 0.24)',
-  text: '#edf4f7',
-  muted: '#8392a5',
-  dim: '#536377',
-  amber: '#f0b35a',
-  ink: '#07111f',
-  whiteLine: 'rgba(255,255,255,0.07)',
+  sheet: '#0b0b0c',
+  surface: 'rgba(20, 20, 22, 0.82)',
+  surface2: 'rgba(30, 30, 33, 0.84)',
+  line: 'rgba(255, 255, 255, 0.14)',
+  text: '#f5f5f5',
+  muted: '#a8a8a8',
+  dim: '#6f6f6f',
+  amber: '#ff8a3d',
+  ink: '#050505',
+  whiteLine: 'rgba(255,255,255,0.10)',
 };
 const ACCENT = COLORS.amber;
 
@@ -503,9 +503,9 @@ const s = StyleSheet.create({
     flex: 1,
     height: 2,
     borderRadius: 2,
-    backgroundColor: 'rgba(240, 179, 90, 0.38)',
+    backgroundColor: 'rgba(255, 79, 123, 0.34)',
   },
-  planeTxt: { color: COLORS.amber, fontSize: 20, lineHeight: 22, paddingHorizontal: 5, marginTop: -3 },
+  planeTxt: { color: COLORS.amber, fontSize: 20, lineHeight: 20, paddingHorizontal: 5, marginTop: -3 },
 
   //suggestion dropdown — floats over detail card, no layout impact
   sugList: {
@@ -593,7 +593,7 @@ const s = StyleSheet.create({
     paddingTop: 10,
   },
   logBtn: {
-    backgroundColor: 'rgba(240, 179, 90, 0.12)',
+    backgroundColor: 'rgba(255, 138, 61, 0.12)',
     borderRadius: 8,
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -601,7 +601,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: 'rgba(240, 179, 90, 0.28)',
+    borderColor: 'rgba(255, 138, 61, 0.28)',
   },
   logTxt: {
     color: ACCENT,

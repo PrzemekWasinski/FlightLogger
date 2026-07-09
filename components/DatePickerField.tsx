@@ -118,15 +118,15 @@ export function DatePickerField({ value, onChange, rowStyle, tagStyle, inputStyl
 }
 
 const s = StyleSheet.create({
-  placeholder: { color: '#253548' },
+  placeholder: { color: '#6f6f6f' },
   value: { flexShrink: 1, flexGrow: 1 },
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(5,10,24,0.75)',
+    backgroundColor: 'rgba(5,5,5,0.78)',
   },
   sheet: {
-    backgroundColor: '#111827',
+    backgroundColor: '#0b0b0c',
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     paddingBottom: 40,
@@ -138,18 +138,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e2d3d',
+    borderBottomColor: '#242426',
   },
   cancelTxt: {
-    color: '#4b5563',
+    color: '#6f6f6f',
     fontSize: 16,
   },
   doneTxt: {
-    color: '#60a5fa',
+    color: '#ff8a3d',
     fontSize: 16,
     fontWeight: '700',
   },
   picker: {
-    backgroundColor: '#111827',
+    backgroundColor: '#0b0b0c',
   },
 });

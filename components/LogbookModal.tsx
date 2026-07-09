@@ -26,20 +26,20 @@ import { log } from '../utils/logger';
 const BUILD_TAG = 'BUILD-MARKER v9 — tabbed-logbook';
 
 const COLORS = {
-  bg: '#07111f',
-  sheet: '#0c1826',
-  surface: 'rgba(20, 32, 51, 0.82)',
-  surface2: 'rgba(24, 40, 61, 0.84)',
-  line: 'rgba(117, 146, 170, 0.24)',
-  text: '#edf4f7',
-  muted: '#8392a5',
-  dim: '#536377',
-  amber: '#f0b35a',
-  teal: '#65d0c2',
-  coral: '#ff7f6e',
+  bg: '#050505',
+  sheet: '#0b0b0c',
+  surface: 'rgba(20, 20, 22, 0.82)',
+  surface2: 'rgba(30, 30, 33, 0.84)',
+  line: 'rgba(255, 255, 255, 0.14)',
+  text: '#f5f5f5',
+  muted: '#a8a8a8',
+  dim: '#6f6f6f',
+  amber: '#ff8a3d',
+  teal: '#d4d4d4',
+  coral: '#ff4f7b',
   red: '#ef4444',
-  ink: '#07111f',
-  whiteLine: 'rgba(255,255,255,0.07)',
+  ink: '#050505',
+  whiteLine: 'rgba(255,255,255,0.10)',
 };
 const ACCENT = COLORS.amber;
 
@@ -186,15 +186,15 @@ function topPercent(value: number, max: number): `${number}%` {
 }
 
 function tabColor(tab: LogbookTab): string {
-  if (tab === 'aircraft') return '#8bb7ff';
-  if (tab === 'airlines') return COLORS.teal;
+  if (tab === 'aircraft') return COLORS.amber;
+  if (tab === 'airlines') return COLORS.amber;
   return COLORS.amber;
 }
 
 function tabWash(tab: LogbookTab): string {
-  if (tab === 'aircraft') return 'rgba(139, 183, 255, 0.12)';
-  if (tab === 'airlines') return 'rgba(101, 208, 194, 0.12)';
-  return 'rgba(240, 179, 90, 0.12)';
+  if (tab === 'aircraft') return 'rgba(255, 255, 255, 0.08)';
+  if (tab === 'airlines') return 'rgba(255, 255, 255, 0.08)';
+  return 'rgba(255, 255, 255, 0.08)';
 }
 
 const SCREEN_W   = Dimensions.get('window').width;
@@ -324,7 +324,9 @@ function CountTile({ item, max, kind, color, wash }: { item: CountItem; max: num
   return (
     <View style={[s.entityTile, { backgroundColor: wash }]}>
       <View style={s.entityTileTop}>
-        <Text style={[s.entityTileCount, { color }]} allowFontScaling={false}>{item.count}</Text>
+        <Text style={[s.entityTileCount, { color }]} allowFontScaling={false}>
+          {item.count} {kind === 'airport' ? (item.count === 1 ? 'Visit' : 'Visits') : (item.count === 1 ? 'Flight' : 'Flights')}
+        </Text>
       </View>
       <View style={s.entityVisual}>
         {kind === 'airport'
@@ -335,7 +337,6 @@ function CountTile({ item, max, kind, color, wash }: { item: CountItem; max: num
         }
       </View>
       <Text style={s.entityTileLabel} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>{item.label}</Text>
-      <Text style={s.entityTileSub} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{item.sublabel}</Text>
       <View style={s.entityTileTrack}>
         <View style={[s.entityTileFill, { width: topPercent(item.count, max), backgroundColor: color }]} />
       </View>
@@ -643,7 +644,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                         onFocus={() => { setEditActiveField('from'); setEditActiveSugs(searchAirports(editFrom)); }}
                         onBlur={onEditInputBlur}
                         placeholder="LHR"
-                        placeholderTextColor="#253548"
+                        placeholderTextColor="#6f6f6f"
                         autoCapitalize="none"
                         autoCorrect={false}
                       />
@@ -662,7 +663,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                         onFocus={() => { setEditActiveField('to'); setEditActiveSugs(searchAirports(editTo)); }}
                         onBlur={onEditInputBlur}
                         placeholder="JFK"
-                        placeholderTextColor="#253548"
+                        placeholderTextColor="#6f6f6f"
                         autoCapitalize="none"
                         autoCorrect={false}
                         textAlign="right"
@@ -696,7 +697,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                       value={editAircraft}
                       onChangeText={setEditAircraft}
                       placeholder="Boeing 737-800"
-                      placeholderTextColor="#253548"
+                      placeholderTextColor="#6f6f6f"
                     />
                   </View>
                   <View style={s.detailRule} />
@@ -707,7 +708,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                       value={editMsn}
                       onChangeText={setEditMsn}
                       placeholder="386"
-                      placeholderTextColor="#253548"
+                      placeholderTextColor="#6f6f6f"
                       autoCapitalize="characters"
                       autoCorrect={false}
                     />
@@ -720,7 +721,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                       value={editRegistration}
                       onChangeText={setEditRegistration}
                       placeholder="G-XLEA"
-                      placeholderTextColor="#253548"
+                      placeholderTextColor="#6f6f6f"
                       autoCapitalize="characters"
                       autoCorrect={false}
                     />
@@ -738,7 +739,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                       onFocus={() => { setEditActiveField('airline'); setEditAirlineSugs(searchAirlines(editAirline)); }}
                       onBlur={onEditInputBlur}
                       placeholder="British Airways"
-                      placeholderTextColor="#253548"
+                      placeholderTextColor="#6f6f6f"
                     />
                   </View>
                   <View style={s.detailRule} />
@@ -750,7 +751,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                         value={editDepRunway}
                         onChangeText={setEditDepRunway}
                         placeholder="27L"
-                        placeholderTextColor="#253548"
+                        placeholderTextColor="#6f6f6f"
                         autoCapitalize="characters"
                         autoCorrect={false}
                       />
@@ -763,7 +764,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                         value={editArrRunway}
                         onChangeText={setEditArrRunway}
                         placeholder="04R"
-                        placeholderTextColor="#253548"
+                        placeholderTextColor="#6f6f6f"
                         autoCapitalize="characters"
                         autoCorrect={false}
                       />
@@ -778,7 +779,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                         value={editCruiseAltitude}
                         onChangeText={setEditCruiseAltitude}
                         placeholder="FL380"
-                        placeholderTextColor="#253548"
+                        placeholderTextColor="#6f6f6f"
                         autoCapitalize="characters"
                         autoCorrect={false}
                       />
@@ -791,7 +792,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                         value={editCabinClass}
                         onChangeText={setEditCabinClass}
                         placeholder="Economy"
-                        placeholderTextColor="#253548"
+                        placeholderTextColor="#6f6f6f"
                       />
                     </View>
                   </View>
@@ -899,7 +900,7 @@ const s = StyleSheet.create({
   },
   tabBtnActive: {
     backgroundColor: COLORS.amber,
-    borderColor: '#ffd08a',
+    borderColor: '#ffb15f',
   },
   tabTxt: {
     color: COLORS.muted,
@@ -944,9 +945,9 @@ const s = StyleSheet.create({
   dateChip: {
     maxWidth: '70%',
     borderRadius: 999,
-    backgroundColor: 'rgba(240, 179, 90, 0.12)',
+    backgroundColor: 'rgba(255, 138, 61, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(240, 179, 90, 0.24)',
+    borderColor: 'rgba(255, 138, 61, 0.24)',
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
@@ -1014,14 +1015,15 @@ const s = StyleSheet.create({
   routeLine: {
     flex: 1,
     height: 2,
-    backgroundColor: 'rgba(240, 179, 90, 0.38)',
+    backgroundColor: 'rgba(255, 79, 123, 0.34)',
     borderRadius: 2,
   },
   planeTxt: {
     color: COLORS.amber,
     fontSize: 20,
-    lineHeight: 22,
+    lineHeight: 20,
     paddingHorizontal: 5,
+    marginTop: -3,
   },
   flightLower: {
     flexDirection: 'row',
@@ -1104,8 +1106,8 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   editBtn: {
-    borderColor: 'rgba(240, 179, 90, 0.20)',
-    backgroundColor: 'rgba(240, 179, 90, 0.06)',
+    borderColor: 'rgba(255, 138, 61, 0.20)',
+    backgroundColor: 'rgba(255, 138, 61, 0.06)',
   },
   deleteBtn: {
     borderColor: 'rgba(239, 68, 68, 0.22)',
@@ -1182,14 +1184,14 @@ const s = StyleSheet.create({
   },
   entityTileCount: { fontSize: 16, fontWeight: '900' },
   entityVisual: {
-    height: COMPACT_W ? 74 : 84,
+    height: COMPACT_W ? 92 : 106,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
-  entityTileAircraft: { width: '110%', height: COMPACT_W ? 74 : 84 },
-  entityTileLogo: { width: '100%', height: 54 },
-  entityTileCode: { fontSize: 27, fontWeight: '900', letterSpacing: 1 },
+  entityTileAircraft: { width: '122%', height: COMPACT_W ? 92 : 106 },
+  entityTileLogo: { width: '112%', height: COMPACT_W ? 76 : 88 },
+  entityTileCode: { fontSize: COMPACT_W ? 34 : 40, fontWeight: '900', letterSpacing: 1 },
   entityTileLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 2 },
   entityTileSub: { color: COLORS.muted, fontSize: 10, fontWeight: '700', textAlign: 'center', marginTop: 2 },
   entityTileTrack: {
@@ -1320,9 +1322,9 @@ const s = StyleSheet.create({
     flex: 1,
     height: 2,
     borderRadius: 2,
-    backgroundColor: 'rgba(240, 179, 90, 0.38)',
+    backgroundColor: 'rgba(255, 79, 123, 0.34)',
   },
-  planeTxtEdit: { color: COLORS.amber, fontSize: 20, lineHeight: 22, paddingHorizontal: 5, marginTop: -3 },
+  planeTxtEdit: { color: COLORS.amber, fontSize: 20, lineHeight: 20, paddingHorizontal: 5, marginTop: -3 },
 
   //detail card (edit)
   detailWrapper: {
@@ -1371,7 +1373,7 @@ const s = StyleSheet.create({
 
   //save button
   saveBtn: {
-    backgroundColor: 'rgba(240, 179, 90, 0.12)',
+    backgroundColor: 'rgba(255, 138, 61, 0.12)',
     borderRadius: 8,
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -1379,7 +1381,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: 'rgba(240, 179, 90, 0.28)',
+    borderColor: 'rgba(255, 138, 61, 0.28)',
   },
   saveTxt: {
     color: COLORS.amber,

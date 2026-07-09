@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { getLogs, clearLogs, log, LogEntry } from '../utils/logger';
 
-const ACCENT     = 'rgb(0, 255, 175)';
+const ACCENT     = '#ff8a3d';
 const SCREEN_H   = Dimensions.get('window').height;
 const HEADER_TOP = Platform.OS === 'ios' ? 55 : (RNStatusBar.currentHeight ?? 24) + 14;
 
@@ -84,7 +84,7 @@ const s = StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: '#050a18',
+    backgroundColor: '#050505',
   },
   header: {
     paddingTop: HEADER_TOP,
@@ -94,26 +94,26 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#111827',
+    borderBottomColor: '#242426',
   },
-  title: { color: '#f3f4f6', fontSize: 18, fontWeight: '700', flex: 1, lineHeight: 32 },
+  title: { color: '#f5f5f5', fontSize: 18, fontWeight: '700', flex: 1, lineHeight: 32 },
   headerRight: { height: 32, flexDirection: 'row', alignItems: 'center', gap: 12 },
   clearBtn: { minWidth: 48, height: 32, alignItems: 'center', justifyContent: 'center' },
   clearTxt: { color: ACCENT, fontSize: 14, fontWeight: '700', lineHeight: 18 },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#4b5563', fontSize: 17, lineHeight: 20 },
+  closeTxt: { color: '#6f6f6f', fontSize: 17, lineHeight: 20 },
 
   list: { padding: 16, paddingBottom: 40 },
 
   row: {
     fontSize: 12,
     lineHeight: 22,
-    color: '#9ca3af',
+    color: '#a8a8a8',
     fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
   },
-  time: { color: '#374151' },
-  prefix: { color: '#6b7280' },
-  msg: { color: '#d1d5db' },
+  time: { color: '#6f6f6f' },
+  prefix: { color: '#a8a8a8' },
+  msg: { color: '#f5f5f5' },
 
-  empty: { color: '#374151', fontSize: 13, marginTop: 40, textAlign: 'center' },
+  empty: { color: '#6f6f6f', fontSize: 13, marginTop: 40, textAlign: 'center' },
 });

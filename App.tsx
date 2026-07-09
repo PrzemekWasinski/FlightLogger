@@ -9,15 +9,15 @@ import { LogbookModal } from './components/LogbookModal';
 import { initDb } from './data/db';
 
 const THEME = {
-  bg: '#07111f',
-  surfaceGlass: 'rgba(7, 17, 31, 0.82)',
-  surface: 'rgba(20, 32, 51, 0.94)',
-  border: 'rgba(219, 190, 129, 0.24)',
-  whiteLine: 'rgba(255,255,255,0.07)',
-  text: '#d8e8ef',
-  amber: '#f0b35a',
-  amberLight: '#ffd08a',
-  teal: '#65d0c2',
+  bg: '#050505',
+  surfaceGlass: 'rgba(8, 8, 9, 0.84)',
+  surface: 'rgba(18, 18, 20, 0.94)',
+  border: 'rgba(255, 255, 255, 0.16)',
+  whiteLine: 'rgba(255,255,255,0.10)',
+  text: '#f5f5f5',
+  amber: '#ff8a3d',
+  amberLight: '#ff4f7b',
+  teal: '#d6d6d6',
 };
 
 (Text as any).defaultProps = (Text as any).defaultProps ?? {};
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRightWidth: 1.5,
     borderRightColor: THEME.text,
-    backgroundColor: 'rgba(240, 179, 90, 0.12)',
+    backgroundColor: 'rgba(255, 138, 61, 0.12)',
   },
   logbookPage: {
     flex: 1,

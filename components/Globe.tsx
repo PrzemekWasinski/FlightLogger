@@ -340,7 +340,7 @@ export function Globe({ refreshKey = 0, onReady }: GlobeProps) {
     });
     renderer.setSize(W, H);
     renderer.setPixelRatio(1);
-    renderer.setClearColor(0x07111f, 1);
+    renderer.setClearColor(0x050505, 1);
 
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 200);
@@ -362,7 +362,7 @@ export function Globe({ refreshKey = 0, onReady }: GlobeProps) {
       new THREE.Mesh(
         new THREE.SphereGeometry(GLOBE_R + 0.002, 36, 18),
         new THREE.MeshBasicMaterial({
-          color: 0xf0b35a, wireframe: true, transparent: true, opacity: earthTexture ? 0.035 : 0.08,
+          color: 0xff8a3d, wireframe: true, transparent: true, opacity: earthTexture ? 0.035 : 0.08,
         }),
       ),
     );
@@ -370,7 +370,7 @@ export function Globe({ refreshKey = 0, onReady }: GlobeProps) {
     scene.add(
       new THREE.Mesh(
         new THREE.SphereGeometry(GLOBE_R * 1.08, 64, 64),
-        new THREE.MeshPhongMaterial({ color: 0x65d0c2, transparent: true, opacity: 0.055 }),
+        new THREE.MeshPhongMaterial({ color: 0xd4d4d4, transparent: true, opacity: 0.055 }),
       ),
     );
 
@@ -417,7 +417,7 @@ export function Globe({ refreshKey = 0, onReady }: GlobeProps) {
       const airportMarkers: AirportMarker[] = [];
       const dotGeo = new THREE.SphereGeometry(1, 12, 12);
       const dotMat = new THREE.MeshBasicMaterial({
-        color: 0x65d0c2,
+        color: 0xff8a3d,
         depthTest: false,
         depthWrite: false,
       });
@@ -586,9 +586,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 10,
-    backgroundColor: 'rgba(7, 17, 31, 0.9)',
+    backgroundColor: 'rgba(8, 8, 9, 0.9)',
     borderWidth: 1,
-    borderColor: 'rgba(240, 179, 90, 0.42)',
+    borderColor: 'rgba(255, 138, 61, 0.42)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
@@ -599,10 +599,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 1.5,
     borderRadius: 1,
-    backgroundColor: 'rgba(240, 179, 90, 0.78)',
+    backgroundColor: 'rgba(255, 79, 123, 0.78)',
   },
   airportName: {
-    color: '#d8e8ef',
+    color: '#f5f5f5',
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '800',
@@ -615,8 +615,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   airportCode: {
-    color: '#07111f',
-    backgroundColor: '#f0b35a',
+    color: '#050505',
+    backgroundColor: '#ff8a3d',
     borderRadius: 6,
     overflow: 'hidden',
     paddingHorizontal: 7,
@@ -627,13 +627,13 @@ const styles = StyleSheet.create({
   },
   airportPlace: {
     marginTop: 4,
-    color: '#65d0c2',
+    color: '#d4d4d4',
     fontSize: 11,
     lineHeight: 13,
     fontWeight: '700',
   },
   airportVisits: {
-    color: '#f0b35a',
+    color: '#ff8a3d',
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '900',
