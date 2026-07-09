@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, StatusBar as RNStatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AddFlightModal } from './components/AddFlightModal';
 import { BottomSheet } from './components/BottomSheet';
@@ -7,8 +7,6 @@ import { ErrorLogsModal } from './components/ErrorLogsModal';
 import { Globe } from './components/Globe';
 import { LogbookModal } from './components/LogbookModal';
 import { initDb } from './data/db';
-
-initDb();
 
 const THEME = {
   bg: '#07111f',
@@ -40,39 +38,85 @@ export default function App() {
   const [logbookOpen,  setLogbookOpen]  = useState(false);
   const [logsOpen,     setLogsOpen]     = useState(false);
   const [refreshKey,   setRefreshKey]   = useState(0);
+  const [ready,        setReady]        = useState(false);
+  const [booted,       setBooted]       = useState(false);
+  const [globeReady,   setGlobeReady]   = useState(false);
+  const [loadPct,      setLoadPct]      = useState(0);
+
+  useEffect(() => {
+    initDb();
+    setBooted(true);
+  }, []);
+
+  useEffect(() => {
+    if (ready) return;
+    const id = setInterval(() => {
+      setLoadPct(prev => {
+        const cap = globeReady ? 100 : 94;
+        const next = Math.min(cap, prev + 6 + Math.round(Math.random() * 5));
+        if (next >= 100) {
+          clearInterval(id);
+          setTimeout(() => setReady(true), 160);
+        }
+        return next;
+      });
+    }, 42);
+    return () => clearInterval(id);
+  }, [globeReady, ready]);
 
   function bumpRefresh() { setRefreshKey(k => k + 1); }
 
   return (
     <View style={styles.root}>
-      <Globe refreshKey={refreshKey} />
-      <BottomSheet hidden={addOpen || logbookOpen || logsOpen} />
+      {booted && <Globe refreshKey={refreshKey} onReady={() => setGlobeReady(true)} />}
+      {ready && (
+        <>
+          <BottomSheet hidden={addOpen || logbookOpen || logsOpen} />
 
-      {!addOpen && !logbookOpen && !logsOpen && (
-        <View style={styles.actionRail}>
-          <TouchableOpacity style={[styles.actionBtn, styles.primaryAction]} onPress={() => setAddOpen(true)} activeOpacity={0.82}>
-            <Text style={styles.primaryGlyph} allowFontScaling={false}>{ACTIONS.add.glyph}</Text>
-          </TouchableOpacity>
+          {!addOpen && !logbookOpen && !logsOpen && (
+            <View style={styles.actionRail}>
+              <TouchableOpacity style={[styles.actionBtn, styles.primaryAction]} onPress={() => setAddOpen(true)} activeOpacity={0.82}>
+                <View style={styles.plusGlyph}>
+                  <View style={styles.plusVertical} />
+                  <View style={styles.plusHorizontal} />
+                </View>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionBtn} onPress={() => setLogbookOpen(true)} activeOpacity={0.82}>
-            <View style={styles.logbookGlyph}>
-              <View style={styles.logbookSpine} />
-              <View style={styles.logbookPage}>
-                <View style={styles.logbookLine} />
-                <View style={[styles.logbookLine, styles.logbookLineShort]} />
-              </View>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => setLogbookOpen(true)} activeOpacity={0.82}>
+                <View style={styles.logbookGlyph}>
+                  <View style={styles.logbookSpine} />
+                  <View style={styles.logbookPage}>
+                    <View style={styles.logbookLine} />
+                    <View style={[styles.logbookLine, styles.logbookLineShort]} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionBtn} onPress={() => setLogsOpen(true)} activeOpacity={0.82}>
+                <Text style={styles.terminalGlyph} allowFontScaling={false}>{ACTIONS.logs.glyph}</Text>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          )}
 
-          <TouchableOpacity style={styles.actionBtn} onPress={() => setLogsOpen(true)} activeOpacity={0.82}>
-            <Text style={styles.terminalGlyph} allowFontScaling={false}>{ACTIONS.logs.glyph}</Text>
-          </TouchableOpacity>
+          <AddFlightModal  visible={addOpen}     onClose={() => setAddOpen(false)}     onFlightChange={bumpRefresh} />
+          <LogbookModal    visible={logbookOpen} onClose={() => setLogbookOpen(false)} onFlightChange={bumpRefresh} />
+          <ErrorLogsModal  visible={logsOpen}    onClose={() => setLogsOpen(false)} />
+        </>
+      )}
+
+      {!ready && (
+        <View style={styles.loading}>
+          <Text style={styles.loadingTitle}>FlightLogger</Text>
+          <View style={styles.loadingTrackWrap}>
+            <View style={styles.loadingTrack}>
+              <View style={[styles.loadingFill, { width: `${loadPct}%` }]} />
+            </View>
+            <Text style={[styles.loadingPlane, { left: `${Math.min(loadPct, 96)}%` }]}>✈</Text>
+          </View>
+          <Text style={styles.loadingPct}>{loadPct}%</Text>
         </View>
       )}
 
-      <AddFlightModal  visible={addOpen}     onClose={() => setAddOpen(false)}     onFlightChange={bumpRefresh} />
-      <LogbookModal    visible={logbookOpen} onClose={() => setLogbookOpen(false)} onFlightChange={bumpRefresh} />
-      <ErrorLogsModal  visible={logsOpen}    onClose={() => setLogsOpen(false)} />
       <StatusBar style="light" />
     </View>
   );
@@ -86,14 +130,15 @@ const styles = StyleSheet.create({
   actionRail: {
     position: 'absolute',
     top: ACTION_TOP,
-    right: 16,
-    width: 58,
-    padding: 5,
-    borderRadius: 29,
+    right: 14,
+    width: 62,
+    padding: 6,
+    borderRadius: 18,
     backgroundColor: THEME.surfaceGlass,
     borderWidth: 1,
     borderColor: THEME.border,
-    gap: 7,
+    gap: 8,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.32,
@@ -101,9 +146,9 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   actionBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: THEME.surface,
@@ -119,6 +164,26 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 32,
     fontWeight: '500',
+  },
+  plusGlyph: {
+    width: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusVertical: {
+    position: 'absolute',
+    width: 2,
+    height: 20,
+    borderRadius: 1,
+    backgroundColor: THEME.bg,
+  },
+  plusHorizontal: {
+    position: 'absolute',
+    width: 20,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: THEME.bg,
   },
   logbookGlyph: {
     width: 22,
@@ -157,5 +222,52 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0,
     fontFamily: 'monospace',
+  },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 36,
+    backgroundColor: THEME.bg,
+  },
+  loadingTitle: {
+    color: THEME.text,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 18,
+  },
+  loadingTrackWrap: {
+    width: '100%',
+    height: 28,
+    justifyContent: 'center',
+  },
+  loadingTrack: {
+    width: '100%',
+    height: 6,
+    borderRadius: 4,
+    overflow: 'hidden',
+    backgroundColor: THEME.surface,
+    borderWidth: 1,
+    borderColor: THEME.whiteLine,
+  },
+  loadingFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: THEME.amber,
+  },
+  loadingPlane: {
+    position: 'absolute',
+    marginLeft: -11,
+    color: THEME.amberLight,
+    fontSize: 24,
+    lineHeight: 24,
+    top: 1,
+    transform: [{ rotate: '4deg' }],
+  },
+  loadingPct: {
+    color: THEME.teal,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 12,
   },
 });

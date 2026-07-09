@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar as RNStatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -32,6 +33,7 @@ const COLORS = {
 const ACCENT = COLORS.amber;
 
 const SCREEN_H = Dimensions.get('window').height;
+const SAFE_TOP = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) + 14 : 54;
 
 interface Props {
   visible: boolean;
@@ -276,7 +278,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     style={s.detailInput}
                     value={msn}
                     onChangeText={setMsn}
-                    placeholder="386"
+                    placeholder="386214"
                     placeholderTextColor={COLORS.dim}
                     autoCapitalize="characters"
                     autoCorrect={false}
@@ -420,7 +422,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: Platform.OS === 'android' ? 72 : 44,
-    maxHeight: SCREEN_H * 0.92,
+    maxHeight: SCREEN_H - SAFE_TOP,
   },
   titleRow: {
     flexDirection: 'row',
@@ -491,11 +493,11 @@ const s = StyleSheet.create({
     letterSpacing: 0,
   },
   routeMid: {
-    flex: 1.4,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 4,
-    paddingTop: 8,
+    paddingTop: 22,
   },
   routeLine: {
     flex: 1,
@@ -503,7 +505,7 @@ const s = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'rgba(240, 179, 90, 0.38)',
   },
-  planeTxt: { color: COLORS.amber, fontSize: 22, lineHeight: 24, paddingHorizontal: 5 },
+  planeTxt: { color: COLORS.amber, fontSize: 20, lineHeight: 22, paddingHorizontal: 5, marginTop: -3 },
 
   //suggestion dropdown — floats over detail card, no layout impact
   sugList: {

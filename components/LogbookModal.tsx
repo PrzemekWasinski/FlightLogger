@@ -349,6 +349,7 @@ function RowGap() { return <View style={{ height: 8 }} />; }
 
 export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   const translateY = useRef(new Animated.Value(SCREEN_H)).current;
+  const editTranslateY = useRef(new Animated.Value(SCREEN_H)).current;
 
   const [flights,         setFlights]         = useState<Flight[]>([]);
   const [activeTab,       setActiveTab]       = useState<LogbookTab>('flights');
@@ -403,12 +404,28 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     setEditActiveSugs([]);
     setEditAirlineSugs([]);
     setEditActiveField(null);
+    editTranslateY.setValue(SCREEN_H);
     setEditingFlight(flight);
+    requestAnimationFrame(() => {
+      Animated.spring(editTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 22,
+        stiffness: 350,
+        mass: 0.7,
+      }).start();
+    });
   }
 
   function cancelEdit() {
     Keyboard.dismiss();
-    setEditingFlight(null);
+    Animated.spring(editTranslateY, {
+      toValue: SCREEN_H,
+      useNativeDriver: true,
+      damping: 24,
+      stiffness: 340,
+      mass: 0.75,
+    }).start(() => setEditingFlight(null));
   }
 
   function saveEdit() {
@@ -428,9 +445,17 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       editCabinClass.trim() || undefined,
     );
     Keyboard.dismiss();
-    setEditingFlight(null);
-    refresh();
-    onFlightChange();
+    Animated.spring(editTranslateY, {
+      toValue: SCREEN_H,
+      useNativeDriver: true,
+      damping: 24,
+      stiffness: 340,
+      mass: 0.75,
+    }).start(() => {
+      setEditingFlight(null);
+      refresh();
+      onFlightChange();
+    });
   }
 
   function onEditFromChange(text: string) {
@@ -481,7 +506,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     (key, count) => ({
       key,
       label: key,
-      sublabel: `${count} ${count === 1 ? 'flight' : 'flights'} logged`,
+      sublabel: `${count} ${count === 1 ? 'Flight' : 'Flights'} logged`,
       count,
       image: getAircraftImage(key),
     }),
@@ -493,7 +518,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     (key, count) => ({
       key,
       label: key,
-      sublabel: `${count} ${count === 1 ? 'sector' : 'sectors'}`,
+      sublabel: `${count} ${count === 1 ? 'Flight' : 'Flights'}`,
       count,
       image: getAirlineImage(key),
     }),
@@ -506,7 +531,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       key,
       code: key,
       label: getAirportName(key),
-      sublabel: `${key} · ${count} ${count === 1 ? 'visit' : 'visits'}`,
+      sublabel: `${count} ${count === 1 ? 'Visit' : 'Visits'}`,
       count,
     }),
   );
@@ -597,7 +622,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       {editingFlight && (
         <KeyboardAvoidingView style={s.editOverlay} behavior={Platform.OS === 'android' ? 'height' : 'padding'}>
           <TouchableOpacity style={s.editBackdrop} onPress={cancelEdit} activeOpacity={1} />
-            <View style={s.editSheet}>
+            <Animated.View style={[s.editSheet, { transform: [{ translateY: editTranslateY }] }]}>
               <View style={s.editHeader}>
                 <Text style={s.editTitle}>Edit Flight</Text>
                 <TouchableOpacity onPress={cancelEdit} style={s.closeBtn}>
@@ -800,7 +825,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                 <Text style={s.saveIcon}>✈</Text>
               </TouchableOpacity>
               </ScrollView>
-            </View>
+            </Animated.View>
         </KeyboardAvoidingView>
       )}
     </Animated.View>
@@ -1143,12 +1168,12 @@ const s = StyleSheet.create({
   },
   entityTile: {
     width: '48%',
-    minHeight: 150,
+    minHeight: 162,
     flex: 1,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.whiteLine,
-    padding: 10,
+    padding: 8,
   },
   entityTileTop: {
     flexDirection: 'row',
@@ -1157,22 +1182,22 @@ const s = StyleSheet.create({
   },
   entityTileCount: { fontSize: 16, fontWeight: '900' },
   entityVisual: {
-    height: 62,
+    height: COMPACT_W ? 74 : 84,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: 1,
   },
-  entityTileAircraft: { width: '100%', height: 62 },
+  entityTileAircraft: { width: '110%', height: COMPACT_W ? 74 : 84 },
   entityTileLogo: { width: '100%', height: 54 },
   entityTileCode: { fontSize: 27, fontWeight: '900', letterSpacing: 1 },
-  entityTileLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 4 },
+  entityTileLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 2 },
   entityTileSub: { color: COLORS.muted, fontSize: 10, fontWeight: '700', textAlign: 'center', marginTop: 2 },
   entityTileTrack: {
     height: 4,
     backgroundColor: 'rgba(7, 17, 31, 0.56)',
     borderRadius: 3,
     overflow: 'hidden',
-    marginTop: 9,
+    marginTop: 7,
   },
   entityTileFill: { height: '100%', borderRadius: 3 },
 
@@ -1184,7 +1209,7 @@ const s = StyleSheet.create({
   },
   editBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(7,17,31,0.74)',
+    backgroundColor: 'transparent',
   },
   editSheet: {
     backgroundColor: COLORS.sheet,
@@ -1285,11 +1310,11 @@ const s = StyleSheet.create({
     marginLeft: 16,
   },
   routeMidEdit: {
-    flex: 1.4,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 4,
-    paddingTop: 8,
+    paddingTop: 22,
   },
   routeLineEdit: {
     flex: 1,
@@ -1297,7 +1322,7 @@ const s = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'rgba(240, 179, 90, 0.38)',
   },
-  planeTxtEdit: { color: COLORS.amber, fontSize: 22, lineHeight: 24, paddingHorizontal: 5 },
+  planeTxtEdit: { color: COLORS.amber, fontSize: 20, lineHeight: 22, paddingHorizontal: 5, marginTop: -3 },
 
   //detail card (edit)
   detailWrapper: {

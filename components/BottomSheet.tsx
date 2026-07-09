@@ -113,6 +113,7 @@ function computeStats() {
   const aircraftCount     = new Map<string, number>();
   const routeCount        = new Map<string, number>();
   const manufacturerCount = new Map<string, number>();
+  const classCount        = new Map<string, number>();
   const yearCount         = new Map<string, number>();
   const monthCount        = new Map<string, number>();
   const weekdayCount      = new Map<number, number>();
@@ -144,6 +145,11 @@ function computeStats() {
       aircraftCount.set(f.aircraft, (aircraftCount.get(f.aircraft) ?? 0) + 1);
       const mfr = f.aircraft.trim().split(/\s+/)[0];
       if (mfr) manufacturerCount.set(mfr, (manufacturerCount.get(mfr) ?? 0) + 1);
+    }
+
+    if (f.cabin_class) {
+      const cabinClass = f.cabin_class.trim();
+      if (cabinClass) classCount.set(cabinClass, (classCount.get(cabinClass) ?? 0) + 1);
     }
 
     const routeKey = `${f.from}–${f.to}`;
@@ -221,6 +227,7 @@ function computeStats() {
     topAirlines:     topN(airlineCount,  5),
     topAircraftList:      topN(aircraftCount,      5),
     topManufacturerList:  topN(manufacturerCount,  5),
+    cabinClassList:       topN(classCount,          5),
 
     flightsPerYear,
     flightsPerMonth,
@@ -231,6 +238,9 @@ function computeStats() {
 // ─── sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel }: { label: string; value: string; imageSource?: any; noImage?: boolean; borderedImage?: boolean; codeLabel?: string }) {
+  const routeMatch = label === 'Longest Flight' || label === 'Top Route'
+    ? /^([A-Z0-9]{3,4})\s*[–→-]\s*([A-Z0-9]{3,4})(?:\n(.+))?$/.exec(value)
+    : null;
   return (
     <View style={card.container}>
       <Text style={card.label} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{label}</Text>
@@ -243,7 +253,16 @@ function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel
           : <View style={card.placeholder} />
         )
       }
-      {value.includes('\n')
+      {routeMatch
+        ? <View style={card.longestWrap}>
+            <View style={card.routeInline}>
+              <Text style={card.routeCode} allowFontScaling={false}>{routeMatch[1]}</Text>
+              <Text style={card.routeArrow} allowFontScaling={false}>→</Text>
+              <Text style={card.routeCode} allowFontScaling={false}>{routeMatch[2]}</Text>
+            </View>
+            {routeMatch[3] ? <Text style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{routeMatch[3]}</Text> : null}
+          </View>
+        : value.includes('\n')
         ? <View style={card.valueLines}>
             {value.split('\n').map((line, i) => (
               <Text key={i} style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{line}</Text>
@@ -447,7 +466,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
   const liveY      = useRef(snapBottomRef.current);
   const startY     = useRef(snapBottomRef.current);
   const [stats, setStats] = useState(computeStats);
-  const [scrollBottomPad, setScrollBottomPad] = useState(snapBottomRef.current + 48);
+  const [scrollBottomPad, setScrollBottomPad] = useState(snapBottomRef.current + 72);
 
   //inputRange uses the Dimensions-based initial value; extrapolate:'clamp' keeps
   //the output correct even if translateY goes slightly beyond it after onLayout correction
@@ -466,7 +485,11 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
   }
 
   useEffect(() => {
-    const id = translateY.addListener(({ value }) => { liveY.current = value; });
+    const id = translateY.addListener(({ value }) => {
+      liveY.current = value;
+      const nextPad = Math.round(Math.max(72, Math.min(snapBottomRef.current + 72, value + 72)));
+      setScrollBottomPad(current => Math.abs(current - nextPad) > 10 ? nextPad : current);
+    });
     return () => translateY.removeListener(id);
   }, []);
 
@@ -511,7 +534,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
       firstLayout.current = false;
       const newSnapBottom = h - PEEK_H;
       snapBottomRef.current = newSnapBottom;
-      setScrollBottomPad(newSnapBottom + 48);
+      setScrollBottomPad(newSnapBottom + 72);
       if (!hidden) {
         translateY.setValue(newSnapBottom);
         liveY.current  = newSnapBottom;
@@ -603,6 +626,11 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         <SectionHeader title="Top 5 Manufacturers" color={COLORS.coral} />
         <View style={styles.chartCard}>
           <ShareStackChart data={stats.topManufacturerList} />
+        </View>
+
+        <SectionHeader title="Class Breakdown" color={COLORS.blue} />
+        <View style={styles.chartCard}>
+          <ShareStackChart data={stats.cabinClassList} />
         </View>
 
         <SectionHeader title="Flights per Year" color={COLORS.amber} />
@@ -724,6 +752,26 @@ const card = StyleSheet.create({
   codeText: { color: COLORS.amber, fontSize: COMPACT_W ? 30 : 36, fontWeight: '900', letterSpacing: 1, width: '100%', textAlign: 'center' },
   value: { width: '100%', color: COLORS.text, fontSize: 13, fontWeight: '800', textAlign: 'center' },
   valueLines: { width: '100%', gap: 8, alignItems: 'center' },
+  longestWrap: { width: '100%', gap: 8, alignItems: 'center' },
+  routeInline: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  routeCode: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  routeArrow: {
+    color: COLORS.amber,
+    fontSize: 14,
+    fontWeight: '900',
+    lineHeight: 14,
+    marginTop: -4,
+  },
 });
 
 const counter = StyleSheet.create({
@@ -803,24 +851,24 @@ const chart = StyleSheet.create({
   fleetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   fleetTile: {
     width: '48%',
-    minHeight: 142,
+    minHeight: 154,
     flexGrow: 1,
     borderRadius: 8,
-    padding: 10,
+    padding: 8,
     backgroundColor: COLORS.blueWash,
     borderWidth: 1,
     borderColor: COLORS.whiteLine,
   },
   fleetTop: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
   fleetCount: { color: COLORS.blue, fontSize: 16, fontWeight: '900' },
-  fleetImage: { width: '100%', height: 62, marginTop: 4 },
-  fleetLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 4 },
+  fleetImage: { width: '108%', alignSelf: 'center', height: COMPACT_W ? 74 : 84, marginTop: 1 },
+  fleetLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 2 },
   fleetTrack: {
     height: 4,
     backgroundColor: 'rgba(7, 17, 31, 0.56)',
     borderRadius: 3,
     overflow: 'hidden',
-    marginTop: 9,
+    marginTop: 7,
   },
   fleetFill: { height: '100%', backgroundColor: COLORS.blue, borderRadius: 3 },
 
@@ -898,17 +946,19 @@ const chart = StyleSheet.create({
   dialRing: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 999,
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   dialCore: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   dialValue: { color: COLORS.dim, fontSize: 12, fontWeight: '900' },
   dialLabel: { color: COLORS.muted, fontSize: 10, fontWeight: '800', marginTop: 7 },
