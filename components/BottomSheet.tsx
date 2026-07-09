@@ -4,10 +4,12 @@ import {
   Dimensions,
   Image,
   PanResponder,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  StatusBar as RNStatusBar,
 } from 'react-native';
 
 const COLORS = {
@@ -36,7 +38,8 @@ import { AIRLINES } from '../data/airlines';
 import AIRLINE_LOGOS from '../assets/airlineLogos';
 import { getAllFlights, Flight } from '../data/db';
 
-const { height: SCREEN_H } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const COMPACT_W = SCREEN_W < 380;
 
 const AIRCRAFT_IMAGE_MAP: [string, any][] = [
   ['737',  require('../assets/aircraft/737.png')],
@@ -70,8 +73,8 @@ function getAirlineImage(name: string): any {
   return AIRLINE_LOGOS[airline.icao] ?? null;
 }
 
-const PEEK_H   = 330;
-const SNAP_TOP = 0;
+const PEEK_H   = Math.min(330, Math.max(250, SCREEN_H * 0.42));
+const SNAP_TOP = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) + 12 : 54;
 
 // ─── snap helpers ──────────────────────────────────────────────────────────────
 
@@ -230,9 +233,9 @@ function computeStats() {
 function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel }: { label: string; value: string; imageSource?: any; noImage?: boolean; borderedImage?: boolean; codeLabel?: string }) {
   return (
     <View style={card.container}>
-      <Text style={card.label} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+      <Text style={card.label} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{label}</Text>
       {codeLabel
-        ? <View style={card.codeBox}><Text style={card.codeText} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{codeLabel}</Text></View>
+        ? <View style={card.codeBox}><Text style={card.codeText} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{codeLabel}</Text></View>
         : !noImage && (imageSource
           ? borderedImage
             ? <View style={card.imageBorder}><Image source={imageSource} style={card.image} resizeMode="contain" /></View>
@@ -243,10 +246,10 @@ function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel
       {value.includes('\n')
         ? <View style={card.valueLines}>
             {value.split('\n').map((line, i) => (
-              <Text key={i} style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{line}</Text>
+              <Text key={i} style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{line}</Text>
             ))}
           </View>
-        : <Text style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+        : <Text style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{value}</Text>
       }
     </View>
   );
@@ -255,8 +258,8 @@ function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel
 function CounterCard({ label, value }: { label: string; value: number }) {
   return (
     <View style={counter.card}>
-      <Text style={counter.num} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={counter.label} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+      <Text style={counter.num} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{value}</Text>
+      <Text style={counter.label} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.62}>{label}</Text>
     </View>
   );
 }
@@ -265,7 +268,7 @@ function SectionHeader({ title, color = ACCENT }: { title: string; color?: strin
   return (
     <View style={sec.row}>
       <View style={[sec.accent, { backgroundColor: color }]} />
-      <Text style={sec.title}>{title}</Text>
+      <Text style={sec.title} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{title}</Text>
     </View>
   );
 }
@@ -283,14 +286,11 @@ function RankedRunwayChart({ data, color, wash }: { data: { label: string; value
   const max = Math.max(...data.map(d => d.value), 1);
   return (
     <View style={chart.rankWrap}>
-      {data.map(({ label, value }, i) => (
+      {data.map(({ label, value }) => (
         <View key={label} style={[chart.rankRow, { backgroundColor: wash }]}>
-          <View style={[chart.rankBadge, { borderColor: color }]}>
-            <Text style={[chart.rankBadgeText, { color }]} allowFontScaling={false}>{i + 1}</Text>
-          </View>
           <View style={chart.rankBody}>
             <View style={chart.rankMeta}>
-              <Text style={chart.rankLabel} numberOfLines={1}>{label}</Text>
+              <Text style={chart.rankLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
               <Text style={[chart.rankValue, { color }]} allowFontScaling={false}>{value}</Text>
             </View>
             <View style={chart.runway}>
@@ -309,14 +309,13 @@ function FleetTilesChart({ data }: { data: { label: string; value: number }[] })
   const max = Math.max(...data.map(d => d.value), 1);
   return (
     <View style={chart.fleetGrid}>
-      {data.map(({ label, value }, i) => (
+      {data.map(({ label, value }) => (
         <View key={label} style={chart.fleetTile}>
           <View style={chart.fleetTop}>
-            <Text style={chart.fleetRank} allowFontScaling={false}>0{i + 1}</Text>
             <Text style={chart.fleetCount} allowFontScaling={false}>{value}</Text>
           </View>
           <Image source={getAircraftImage(label)} style={chart.fleetImage} resizeMode="contain" />
-          <Text style={chart.fleetLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+          <Text style={chart.fleetLabel} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>{label}</Text>
           <View style={chart.fleetTrack}>
             <View style={[chart.fleetFill, { width: topPercent(value, max) }]} />
           </View>
@@ -350,7 +349,7 @@ function ShareStackChart({ data }: { data: { label: string; value: number }[] })
         {data.map((item, i) => (
           <View key={item.label} style={chart.shareItem}>
             <View style={[chart.shareDot, { backgroundColor: palette[i % palette.length] }]} />
-            <Text style={chart.shareLabel} numberOfLines={1}>{item.label}</Text>
+            <Text style={chart.shareLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{item.label}</Text>
             <Text style={chart.shareValue} allowFontScaling={false}>{Math.round((item.value / total) * 100)}%</Text>
           </View>
         ))}
@@ -373,7 +372,7 @@ function TowerChart({ data, color }: { data: { label: string; value: number }[];
             }]} />
             <View style={chart.towerMarker} />
           </View>
-          <Text style={chart.towerLabel} numberOfLines={1}>{label}</Text>
+          <Text style={chart.towerLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
         </View>
       ))}
     </View>
@@ -402,7 +401,7 @@ function ActivityRibbonChart({ data }: { data: { label: string; value: number }[
                   {active ? value : ''}
                 </Text>
               </View>
-              <Text style={chart.ribbonLabel} numberOfLines={1}>{label}</Text>
+              <Text style={chart.ribbonLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>{label}</Text>
             </View>
           );
         })}
@@ -546,18 +545,18 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         {/*summary row*/}
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.flightCount}</Text>
-            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>Flights</Text>
+            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{stats.flightCount}</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>Flights</Text>
           </View>
           <View style={styles.summarySep} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.kmStr}</Text>
-            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>Km flown</Text>
+            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{stats.kmStr}</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>Km flown</Text>
           </View>
           <View style={styles.summarySep} />
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>{stats.countries}</Text>
-            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit>Countries</Text>
+            <Text style={styles.summaryNum} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{stats.countries}</Text>
+            <Text style={styles.summaryLabel} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>Countries</Text>
           </View>
         </View>
 
@@ -587,17 +586,17 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
 
         {/*charts*/}
         <SectionHeader title="Top 5 Airports" color={COLORS.amber} />
-        <View style={styles.chartCard}>
+        <View style={styles.unframedChart}>
           <RankedRunwayChart data={stats.topAirports} color={COLORS.amber} wash={COLORS.amberWash} />
         </View>
 
         <SectionHeader title="Top 5 Airlines" color={COLORS.teal} />
-        <View style={styles.chartCard}>
+        <View style={styles.unframedChart}>
           <RankedRunwayChart data={stats.topAirlines} color={COLORS.teal} wash={COLORS.tealWash} />
         </View>
 
         <SectionHeader title="Top 5 Aircraft Types" color={COLORS.blue} />
-        <View style={styles.chartCard}>
+        <View style={styles.unframedChart}>
           <FleetTilesChart data={stats.topAircraftList} />
         </View>
 
@@ -700,6 +699,10 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 8,
   },
+  unframedChart: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+  },
 });
 
 const card = StyleSheet.create({
@@ -714,12 +717,12 @@ const card = StyleSheet.create({
     gap: 8,
   },
   label: { width: '100%', color: COLORS.muted, fontSize: 11, textAlign: 'center', fontWeight: '700' },
-  placeholder: { width: '100%', height: 135, backgroundColor: COLORS.surface2, borderRadius: 6 },
-  image: { width: '100%', height: 135 },
+  placeholder: { width: '100%', height: COMPACT_W ? 104 : 135, backgroundColor: COLORS.surface2, borderRadius: 6 },
+  image: { width: '100%', height: COMPACT_W ? 104 : 135 },
   imageBorder: { width: '100%', borderRadius: 8, overflow: 'hidden' },
-  codeBox:  { width: '100%', height: 135, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  codeText: { color: COLORS.amber, fontSize: 20, fontWeight: '800', letterSpacing: 0, width: '100%', textAlign: 'center' },
-  value: { width: '100%', color: COLORS.text, fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  codeBox:  { width: '100%', height: COMPACT_W ? 104 : 135, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  codeText: { color: COLORS.amber, fontSize: COMPACT_W ? 30 : 36, fontWeight: '900', letterSpacing: 1, width: '100%', textAlign: 'center' },
+  value: { width: '100%', color: COLORS.text, fontSize: 13, fontWeight: '800', textAlign: 'center' },
   valueLines: { width: '100%', gap: 8, alignItems: 'center' },
 });
 
@@ -777,16 +780,6 @@ const chart = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.whiteLine,
   },
-  rankBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  rankBadgeText: { fontSize: 12, fontWeight: '800' },
   rankBody: { flex: 1 },
   rankMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 7 },
   rankLabel: { color: COLORS.text, fontSize: 13, fontWeight: '700', flex: 1, marginRight: 10 },
@@ -818,8 +811,7 @@ const chart = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.whiteLine,
   },
-  fleetTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  fleetRank: { color: COLORS.dim, fontSize: 10, fontWeight: '800' },
+  fleetTop: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
   fleetCount: { color: COLORS.blue, fontSize: 16, fontWeight: '900' },
   fleetImage: { width: '100%', height: 62, marginTop: 4 },
   fleetLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 4 },

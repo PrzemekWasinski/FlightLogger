@@ -9,6 +9,11 @@ export interface Flight {
   aircraft?: string;
   registration?: string;
   date?: string;
+  msn?: string;
+  dep_runway?: string;
+  arr_runway?: string;
+  cruise_altitude?: string;
+  cabin_class?: string;
   distance_km?: number;
 }
 
@@ -43,11 +48,21 @@ export function initDb(): void {
       aircraft     TEXT,
       registration TEXT,
       date         TEXT,
+      msn          TEXT,
+      dep_runway   TEXT,
+      arr_runway   TEXT,
+      cruise_altitude TEXT,
+      cabin_class  TEXT,
       distance_km  REAL
     );
   `);
   //add distance_km to existing dbs that predate this column
   try { db.execSync('ALTER TABLE flights ADD COLUMN distance_km REAL'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN msn TEXT'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN dep_runway TEXT'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN arr_runway TEXT'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN cruise_altitude TEXT'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN cabin_class TEXT'); } catch {}
 
   //backfill distance_km for any rows that are missing it
   const needsDist = db.getAllSync<{ id: number; origin: string; destination: string }>(
@@ -75,10 +90,24 @@ export function initDb(): void {
   }
 }
 
-export function insertFlight(from: string, to: string, airline?: string, aircraft?: string, registration?: string, date?: string): void {
+export function insertFlight(
+  from: string,
+  to: string,
+  airline?: string,
+  aircraft?: string,
+  registration?: string,
+  date?: string,
+  msn?: string,
+  dep_runway?: string,
+  arr_runway?: string,
+  cruise_altitude?: string,
+  cabin_class?: string,
+): void {
   db.runSync(
-    'INSERT INTO flights (origin, destination, airline, aircraft, registration, date, distance_km) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    from, to, airline ?? null, aircraft ?? null, registration ?? null, date ?? null, calcDistance(from, to),
+    'INSERT INTO flights (origin, destination, airline, aircraft, registration, date, msn, dep_runway, arr_runway, cruise_altitude, cabin_class, distance_km) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    from, to, airline ?? null, aircraft ?? null, registration ?? null, date ?? null,
+    msn ?? null, dep_runway ?? null, arr_runway ?? null, cruise_altitude ?? null, cabin_class ?? null,
+    calcDistance(from, to),
   );
 }
 
@@ -86,16 +115,35 @@ export function deleteFlight(id: number): void {
   db.runSync('DELETE FROM flights WHERE id = ?', id);
 }
 
-export function updateFlight(id: number, from: string, to: string, airline?: string, aircraft?: string, registration?: string, date?: string): void {
+export function updateFlight(
+  id: number,
+  from: string,
+  to: string,
+  airline?: string,
+  aircraft?: string,
+  registration?: string,
+  date?: string,
+  msn?: string,
+  dep_runway?: string,
+  arr_runway?: string,
+  cruise_altitude?: string,
+  cabin_class?: string,
+): void {
   db.runSync(
-    'UPDATE flights SET origin = ?, destination = ?, airline = ?, aircraft = ?, registration = ?, date = ?, distance_km = ? WHERE id = ?',
-    from, to, airline ?? null, aircraft ?? null, registration ?? null, date ?? null, calcDistance(from, to), id,
+    'UPDATE flights SET origin = ?, destination = ?, airline = ?, aircraft = ?, registration = ?, date = ?, msn = ?, dep_runway = ?, arr_runway = ?, cruise_altitude = ?, cabin_class = ?, distance_km = ? WHERE id = ?',
+    from, to, airline ?? null, aircraft ?? null, registration ?? null, date ?? null,
+    msn ?? null, dep_runway ?? null, arr_runway ?? null, cruise_altitude ?? null, cabin_class ?? null,
+    calcDistance(from, to), id,
   );
 }
 
 export function getAllFlights(): Flight[] {
   return db
-    .getAllSync<{ id: number; origin: string; destination: string; airline: string | null; aircraft: string | null; registration: string | null; date: string | null; distance_km: number | null }>
+    .getAllSync<{
+      id: number; origin: string; destination: string; airline: string | null; aircraft: string | null;
+      registration: string | null; date: string | null; msn: string | null; dep_runway: string | null;
+      arr_runway: string | null; cruise_altitude: string | null; cabin_class: string | null; distance_km: number | null;
+    }>
     ('SELECT * FROM flights ORDER BY id')
     .map(r => ({
       id:           r.id,
@@ -105,6 +153,11 @@ export function getAllFlights(): Flight[] {
       aircraft:     r.aircraft     ?? undefined,
       registration: r.registration ?? undefined,
       date:         r.date         ?? undefined,
+      msn:          r.msn          ?? undefined,
+      dep_runway:   r.dep_runway   ?? undefined,
+      arr_runway:   r.arr_runway   ?? undefined,
+      cruise_altitude: r.cruise_altitude ?? undefined,
+      cabin_class:  r.cabin_class  ?? undefined,
       distance_km:  r.distance_km  ?? undefined,
     }));
 }

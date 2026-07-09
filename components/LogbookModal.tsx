@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   PixelRatio,
   Platform,
+  ScrollView,
   StatusBar as RNStatusBar,
   StyleSheet,
   Text,
@@ -144,6 +145,15 @@ function kmLabel(km?: number): string {
   return rounded >= 1000 ? `${(rounded / 1000).toFixed(1)}K km` : `${rounded} km`;
 }
 
+function formatAltitude(value?: string): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/^fl/i.test(trimmed)) return trimmed.toUpperCase();
+  if (/^\d+$/.test(trimmed)) return `${Number(trimmed).toLocaleString()} ft`;
+  return trimmed;
+}
+
 type LogbookTab = 'flights' | 'aircraft' | 'airlines' | 'airports';
 type CountItem = { key: string; label: string; sublabel: string; count: number; image?: any; code?: string };
 
@@ -187,7 +197,9 @@ function tabWash(tab: LogbookTab): string {
   return 'rgba(240, 179, 90, 0.12)';
 }
 
+const SCREEN_W   = Dimensions.get('window').width;
 const SCREEN_H   = Dimensions.get('window').height;
+const COMPACT_W  = SCREEN_W < 380;
 //On Android with edgeToEdgeEnabled the window starts at y=0 (behind the status bar)
 const HEADER_TOP = Platform.OS === 'ios' ? 55 : (RNStatusBar.currentHeight ?? 24) + 14;
 
@@ -205,13 +217,51 @@ interface RowProps {
   onDelete: () => void;
 }
 
+function joinDetails(parts: (string | undefined)[]): string | undefined {
+  const clean = parts.filter(Boolean) as string[];
+  return clean.length ? clean.join('  /  ') : undefined;
+}
+
+function EditGlyph() {
+  return (
+    <View style={s.editGlyph}>
+      <View style={s.editGlyphLine} />
+      <View style={s.editGlyphTip} />
+    </View>
+  );
+}
+
+function DeleteGlyph() {
+  return (
+    <View style={s.deleteGlyph}>
+      <View style={s.deleteGlyphLid} />
+      <View style={s.deleteGlyphBody}>
+        <View style={s.deleteGlyphLine} />
+        <View style={s.deleteGlyphLine} />
+      </View>
+    </View>
+  );
+}
+
 function FlightRow({ item, onEdit, onDelete }: RowProps) {
   const aircraftImg = getAircraftImage(item.aircraft);
+  const cruise = formatAltitude(item.cruise_altitude);
+  const identityLine = joinDetails([
+    item.registration,
+    item.msn ? `MSN ${item.msn}` : undefined,
+  ]);
+  const runwayLine = item.dep_runway || item.arr_runway
+    ? `Runways ${item.dep_runway ?? '—'} to ${item.arr_runway ?? '—'}`
+    : undefined;
+  const profileLine = joinDetails([
+    cruise ? `Cruise ${cruise}` : undefined,
+    item.cabin_class,
+  ]);
   return (
     <View style={s.card}>
       <View style={s.flightTop}>
         <View style={s.dateChip}>
-          <Text style={s.dateChipText} numberOfLines={1} allowFontScaling={false}>{formatDate(item.date)}</Text>
+          <Text style={s.dateChipText} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.7}>{formatDate(item.date)}</Text>
         </View>
         <Text style={s.distanceText} allowFontScaling={false}>{kmLabel(item.distance_km)}</Text>
       </View>
@@ -241,17 +291,19 @@ function FlightRow({ item, onEdit, onDelete }: RowProps) {
         </View>
         <View style={s.flightLowerBody}>
           <View style={s.flightMeta}>
-            <Text style={s.aircraftLine} numberOfLines={1}>{item.aircraft ?? 'Aircraft not logged'}</Text>
-            <Text style={s.infoLine} numberOfLines={1}>{item.airline ?? 'Airline not logged'}</Text>
-            {item.registration ? <Text style={s.regLine} numberOfLines={1}>{item.registration}</Text> : null}
+            <Text style={s.aircraftLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{item.aircraft ?? 'Aircraft not logged'}</Text>
+            <Text style={s.infoLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{item.airline ?? 'Airline not logged'}</Text>
+            {identityLine ? <Text style={s.identityLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{identityLine}</Text> : null}
+            {runwayLine ? <Text style={s.opsLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{runwayLine}</Text> : null}
+            {profileLine ? <Text style={s.profileLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{profileLine}</Text> : null}
           </View>
 
           <View style={s.actions}>
-            <TouchableOpacity onPress={onEdit} style={s.actionBtn}>
-              <Text style={s.editTxt} allowFontScaling={false}>Edit</Text>
+            <TouchableOpacity onPress={onEdit} style={[s.actionBtn, s.editBtn]} accessibilityLabel="Edit flight">
+              <EditGlyph />
             </TouchableOpacity>
-            <TouchableOpacity onPress={onDelete} style={s.actionBtn}>
-              <Text style={s.deleteTxt} allowFontScaling={false}>Delete</Text>
+            <TouchableOpacity onPress={onDelete} style={[s.actionBtn, s.deleteBtn]} accessibilityLabel="Delete flight">
+              <DeleteGlyph />
             </TouchableOpacity>
           </View>
         </View>
@@ -263,16 +315,15 @@ function FlightRow({ item, onEdit, onDelete }: RowProps) {
 function TabButton({ tab, active, onPress }: { tab: { key: LogbookTab; label: string }; active: boolean; onPress: () => void }) {
   return (
     <TouchableOpacity style={[s.tabBtn, active && s.tabBtnActive]} onPress={onPress} activeOpacity={0.82}>
-      <Text style={[s.tabTxt, active && s.tabTxtActive]} allowFontScaling={false} numberOfLines={1}>{tab.label}</Text>
+      <Text style={[s.tabTxt, active && s.tabTxtActive]} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{tab.label}</Text>
     </TouchableOpacity>
   );
 }
 
-function CountTile({ item, index, max, kind, color, wash }: { item: CountItem; index: number; max: number; kind: 'aircraft' | 'airline' | 'airport'; color: string; wash: string }) {
+function CountTile({ item, max, kind, color, wash }: { item: CountItem; max: number; kind: 'aircraft' | 'airline' | 'airport'; color: string; wash: string }) {
   return (
     <View style={[s.entityTile, { backgroundColor: wash }]}>
       <View style={s.entityTileTop}>
-        <Text style={s.entityTileRank} allowFontScaling={false}>0{index + 1}</Text>
         <Text style={[s.entityTileCount, { color }]} allowFontScaling={false}>{item.count}</Text>
       </View>
       <View style={s.entityVisual}>
@@ -283,8 +334,8 @@ function CountTile({ item, index, max, kind, color, wash }: { item: CountItem; i
             : <Text style={[s.entityTileCode, { color }]} allowFontScaling={false}>{item.label.slice(0, 3).toUpperCase()}</Text>
         }
       </View>
-      <Text style={s.entityTileLabel} numberOfLines={1} adjustsFontSizeToFit>{item.label}</Text>
-      <Text style={s.entityTileSub} numberOfLines={1}>{item.sublabel}</Text>
+      <Text style={s.entityTileLabel} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>{item.label}</Text>
+      <Text style={s.entityTileSub} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{item.sublabel}</Text>
       <View style={s.entityTileTrack}>
         <View style={[s.entityTileFill, { width: topPercent(item.count, max), backgroundColor: color }]} />
       </View>
@@ -308,6 +359,11 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   const [editRegistration, setEditRegistration] = useState('');
   const [editAirline,     setEditAirline]     = useState('');
   const [editDate,        setEditDate]        = useState('');
+  const [editMsn,         setEditMsn]         = useState('');
+  const [editDepRunway,   setEditDepRunway]   = useState('');
+  const [editArrRunway,   setEditArrRunway]   = useState('');
+  const [editCruiseAltitude, setEditCruiseAltitude] = useState('');
+  const [editCabinClass,  setEditCabinClass]  = useState('');
   const [editActiveSugs,  setEditActiveSugs]  = useState<Suggestion[]>([]);
   const [editAirlineSugs, setEditAirlineSugs] = useState<AirlineSuggestion[]>([]);
   const [editActiveField, setEditActiveField] = useState<'from' | 'to' | 'airline' | null>(null);
@@ -339,6 +395,11 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     setEditRegistration(flight.registration ?? '');
     setEditAirline(flight.airline   ?? '');
     setEditDate(flight.date         ?? '');
+    setEditMsn(flight.msn           ?? '');
+    setEditDepRunway(flight.dep_runway ?? '');
+    setEditArrRunway(flight.arr_runway ?? '');
+    setEditCruiseAltitude(flight.cruise_altitude ?? '');
+    setEditCabinClass(flight.cabin_class ?? '');
     setEditActiveSugs([]);
     setEditAirlineSugs([]);
     setEditActiveField(null);
@@ -360,6 +421,11 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       editAircraft.trim() || undefined,
       editRegistration.trim().toUpperCase() || undefined,
       editDate.trim()     || undefined,
+      editMsn.trim().toUpperCase() || undefined,
+      editDepRunway.trim().toUpperCase() || undefined,
+      editArrRunway.trim().toUpperCase() || undefined,
+      editCruiseAltitude.trim() || undefined,
+      editCabinClass.trim() || undefined,
     );
     Keyboard.dismiss();
     setEditingFlight(null);
@@ -463,7 +529,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     ? 1
     : Math.max(...(currentData as CountItem[]).map(item => item.count), 1);
 
-  function renderItem({ item, index }: { item: Flight | CountItem; index: number }) {
+  function renderItem({ item }: { item: Flight | CountItem }) {
     if (activeTab === 'flights') {
       const flight = item as Flight;
       return (
@@ -477,7 +543,6 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     return (
       <CountTile
         item={item as CountItem}
-        index={index}
         max={currentCountMax}
         kind={activeTab === 'aircraft' ? 'aircraft' : activeTab === 'airlines' ? 'airline' : 'airport'}
         color={tabColor(activeTab)}
@@ -501,8 +566,8 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       {/*header*/}
       <View style={s.header}>
         <View style={s.titleBlock}>
-          <Text style={s.title} numberOfLines={1} allowFontScaling={false}>Logbook</Text>
-          <Text style={s.subtitle} numberOfLines={1} allowFontScaling={false}>{summary.flights} flights · {summary.airports} airports</Text>
+          <Text style={s.title} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>Logbook</Text>
+          <Text style={s.subtitle} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{summary.flights} flights · {summary.airports} airports</Text>
         </View>
         <TouchableOpacity onPress={onClose} style={s.closeBtn}>
           <Text style={s.closeTxt}>✕</Text>
@@ -540,60 +605,61 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                 </TouchableOpacity>
               </View>
 
-              {/*route inputs — wrapper lifts suggestions above siblings via zIndex*/}
-              <View style={s.routeWrapper}>
-                <View style={s.routeCard} onLayout={e => setEditRouteH(e.nativeEvent.layout.height)}>
-                  <View style={s.routeSide}>
-                    <Text style={s.routeTag}>FROM</Text>
-                    <TextInput
-                      style={[s.iataInput, editFrom.length > 4 && s.iataInputSearch]}
-                      value={editFrom}
-                      onChangeText={onEditFromChange}
-                      onFocus={() => { setEditActiveField('from'); setEditActiveSugs(searchAirports(editFrom)); }}
-                      onBlur={onEditInputBlur}
-                      placeholder="LHR"
-                      placeholderTextColor="#253548"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {/*route inputs — wrapper lifts suggestions above siblings via zIndex*/}
+                <View style={s.routeWrapper}>
+                  <View style={s.routeCard} onLayout={e => setEditRouteH(e.nativeEvent.layout.height)}>
+                    <View style={s.routeSide}>
+                      <Text style={s.routeTag}>FROM</Text>
+                      <TextInput
+                        style={[s.iataInput, editFrom.length > 4 && s.iataInputSearch]}
+                        value={editFrom}
+                        onChangeText={onEditFromChange}
+                        onFocus={() => { setEditActiveField('from'); setEditActiveSugs(searchAirports(editFrom)); }}
+                        onBlur={onEditInputBlur}
+                        placeholder="LHR"
+                        placeholderTextColor="#253548"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                    </View>
+                    <View style={s.routeMidEdit}>
+                      <View style={s.routeLineEdit} />
+                      <Text style={s.planeTxtEdit}>✈</Text>
+                      <View style={s.routeLineEdit} />
+                    </View>
+                    <View style={[s.routeSide, s.routeSideRight]}>
+                      <Text style={[s.routeTag, s.routeTagRight]}>TO</Text>
+                      <TextInput
+                        style={[s.iataInput, s.iataInputRight, editTo.length > 4 && s.iataInputSearch]}
+                        value={editTo}
+                        onChangeText={onEditToChange}
+                        onFocus={() => { setEditActiveField('to'); setEditActiveSugs(searchAirports(editTo)); }}
+                        onBlur={onEditInputBlur}
+                        placeholder="JFK"
+                        placeholderTextColor="#253548"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        textAlign="right"
+                      />
+                    </View>
                   </View>
-                  <View style={s.routeMidEdit}>
-                    <View style={s.routeLineEdit} />
-                    <Text style={s.planeTxtEdit}>✈</Text>
-                    <View style={s.routeLineEdit} />
-                  </View>
-                  <View style={[s.routeSide, s.routeSideRight]}>
-                    <Text style={[s.routeTag, s.routeTagRight]}>TO</Text>
-                    <TextInput
-                      style={[s.iataInput, s.iataInputRight, editTo.length > 4 && s.iataInputSearch]}
-                      value={editTo}
-                      onChangeText={onEditToChange}
-                      onFocus={() => { setEditActiveField('to'); setEditActiveSugs(searchAirports(editTo)); }}
-                      onBlur={onEditInputBlur}
-                      placeholder="JFK"
-                      placeholderTextColor="#253548"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      textAlign="right"
-                    />
-                  </View>
-                </View>
 
-                {/*suggestion dropdown — absolute so it overlays the detail card below*/}
-                {editActiveSugs.length > 0 && (
-                  <View style={[s.sugList, { top: editRouteH }]}>
-                    {editActiveSugs.map((sug, idx) => (
-                      <React.Fragment key={sug.code}>
-                        {idx > 0 && <View style={s.sugRule} />}
-                        <TouchableOpacity style={s.sugItem} onPress={() => selectEditSuggestion(sug.code)}>
-                          <Text style={s.sugCode}>{sug.code}</Text>
-                          <Text style={s.sugName} numberOfLines={1}>{sug.name}</Text>
-                        </TouchableOpacity>
-                      </React.Fragment>
-                    ))}
-                  </View>
-                )}
-              </View>
+                  {/*suggestion dropdown — absolute so it overlays the detail card below*/}
+                  {editActiveSugs.length > 0 && (
+                    <View style={[s.sugList, { top: editRouteH }]}>
+                      {editActiveSugs.map((sug, idx) => (
+                        <React.Fragment key={sug.code}>
+                          {idx > 0 && <View style={s.sugRule} />}
+                          <TouchableOpacity style={s.sugItem} onPress={() => selectEditSuggestion(sug.code)}>
+                            <Text style={s.sugCode}>{sug.code}</Text>
+                            <Text style={s.sugName} numberOfLines={1}>{sug.name}</Text>
+                          </TouchableOpacity>
+                        </React.Fragment>
+                      ))}
+                    </View>
+                  )}
+                </View>
 
               {/*detail inputs*/}
               <View style={s.detailWrapper}>
@@ -606,6 +672,19 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                       onChangeText={setEditAircraft}
                       placeholder="Boeing 737-800"
                       placeholderTextColor="#253548"
+                    />
+                  </View>
+                  <View style={s.detailRule} />
+                  <View style={s.detailRow}>
+                    <Text style={s.detailTag}>MSN</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={editMsn}
+                      onChangeText={setEditMsn}
+                      placeholder="386"
+                      placeholderTextColor="#253548"
+                      autoCapitalize="characters"
+                      autoCorrect={false}
                     />
                   </View>
                   <View style={s.detailRule} />
@@ -638,6 +717,60 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                     />
                   </View>
                   <View style={s.detailRule} />
+                  <View style={s.compactGrid}>
+                    <View style={s.compactCell}>
+                      <Text style={s.detailTag}>DEP RWY</Text>
+                      <TextInput
+                        style={s.detailInput}
+                        value={editDepRunway}
+                        onChangeText={setEditDepRunway}
+                        placeholder="27L"
+                        placeholderTextColor="#253548"
+                        autoCapitalize="characters"
+                        autoCorrect={false}
+                      />
+                    </View>
+                    <View style={s.compactRule} />
+                    <View style={s.compactCell}>
+                      <Text style={s.detailTag}>ARR RWY</Text>
+                      <TextInput
+                        style={s.detailInput}
+                        value={editArrRunway}
+                        onChangeText={setEditArrRunway}
+                        placeholder="04R"
+                        placeholderTextColor="#253548"
+                        autoCapitalize="characters"
+                        autoCorrect={false}
+                      />
+                    </View>
+                  </View>
+                  <View style={s.detailRule} />
+                  <View style={s.compactGrid}>
+                    <View style={s.compactCell}>
+                      <Text style={s.detailTag}>CRUISE ALT</Text>
+                      <TextInput
+                        style={s.detailInput}
+                        value={editCruiseAltitude}
+                        onChangeText={setEditCruiseAltitude}
+                        placeholder="FL380"
+                        placeholderTextColor="#253548"
+                        autoCapitalize="characters"
+                        autoCorrect={false}
+                      />
+                    </View>
+                    <View style={s.compactRule} />
+                    <View style={s.compactCell}>
+                      <Text style={s.detailTag}>CLASS</Text>
+                      <TextInput
+                        style={s.detailInput}
+                        value={editCabinClass}
+                        onChangeText={setEditCabinClass}
+                        placeholder="Economy"
+                        placeholderTextColor="#253548"
+                      />
+                    </View>
+                  </View>
+                  <View style={s.detailRule} />
                   <DatePickerField
                     value={editDate}
                     onChange={setEditDate}
@@ -666,6 +799,7 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                 <Text style={s.saveTxt}>Save Changes</Text>
                 <Text style={s.saveIcon}>✈</Text>
               </TouchableOpacity>
+              </ScrollView>
             </View>
         </KeyboardAvoidingView>
       )}
@@ -802,26 +936,26 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
   aircraftIcon: {
-    width: 92,
-    height: 86,
+    width: COMPACT_W ? 104 : 122,
+    height: COMPACT_W ? 96 : 112,
   },
   aircraftIconPlaceholder: {
-    width: 92,
-    height: 86,
+    width: COMPACT_W ? 104 : 122,
+    height: COMPACT_W ? 96 : 112,
   },
   routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   airportBlock: {
-    width: 78,
+    width: COMPACT_W ? 66 : 78,
   },
   airportBlockRight: {
     alignItems: 'flex-end',
   },
   airportCode: {
     color: COLORS.text,
-    fontSize: 25,
+    fontSize: COMPACT_W ? 23 : 25,
     fontWeight: '900',
     letterSpacing: 1,
   },
@@ -873,52 +1007,69 @@ const s = StyleSheet.create({
     borderTopColor: COLORS.line,
   },
   aircraftMedia: {
-    width: 98,
-    minHeight: 92,
+    width: COMPACT_W ? 106 : 124,
+    minHeight: COMPACT_W ? 102 : 118,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 8,
   },
   flightLowerBody: {
     flex: 1,
     minWidth: 0,
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 8,
   },
   flightMeta: {
     flex: 1,
     minWidth: 0,
+    justifyContent: 'center',
   },
   infoLine: {
     color: COLORS.text,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     width: '100%',
   },
   aircraftLine: {
     color: COLORS.amber,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: COMPACT_W ? 15 : 17,
+    lineHeight: COMPACT_W ? 20 : 22,
     fontWeight: '800',
     width: '100%',
   },
-  regLine: {
+  identityLine: {
     color: COLORS.teal,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 1,
-    marginTop: 1,
+    letterSpacing: 0.7,
+    marginTop: 2,
+    width: '100%',
+  },
+  opsLine: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700',
+    marginTop: 6,
+    width: '100%',
+  },
+  profileLine: {
+    color: COLORS.amber,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
     width: '100%',
   },
   actions: {
-    flexDirection: 'row',
+    width: 38,
     gap: 8,
-    justifyContent: 'flex-end',
-    marginTop: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   actionBtn: {
-    minWidth: 86,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    width: 36,
+    height: 34,
     borderRadius: 8,
     backgroundColor: COLORS.surface2,
     borderWidth: 1,
@@ -927,19 +1078,68 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  editTxt: {
-    color: COLORS.amber,
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    width: '100%',
+  editBtn: {
+    borderColor: 'rgba(240, 179, 90, 0.20)',
+    backgroundColor: 'rgba(240, 179, 90, 0.06)',
   },
-  deleteTxt: {
-    color: COLORS.red,
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    width: '100%',
+  deleteBtn: {
+    borderColor: 'rgba(239, 68, 68, 0.22)',
+    backgroundColor: 'rgba(239, 68, 68, 0.06)',
+  },
+  editGlyph: {
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '-35deg' }],
+  },
+  editGlyphLine: {
+    width: 3,
+    height: 13,
+    borderRadius: 2,
+    backgroundColor: COLORS.amber,
+  },
+  editGlyphTip: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderTopWidth: 3,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: COLORS.amber,
+    marginTop: 1,
+  },
+  deleteGlyph: {
+    width: 15,
+    height: 16,
+    alignItems: 'center',
+  },
+  deleteGlyphLid: {
+    width: 13,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: COLORS.red,
+    marginBottom: 2,
+  },
+  deleteGlyphBody: {
+    width: 12,
+    height: 11,
+    borderWidth: 1.5,
+    borderTopWidth: 0,
+    borderColor: COLORS.red,
+    borderBottomLeftRadius: 2,
+    borderBottomRightRadius: 2,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 2,
+    paddingTop: 2,
+  },
+  deleteGlyphLine: {
+    width: 1,
+    height: 6,
+    borderRadius: 1,
+    backgroundColor: COLORS.red,
   },
   entityTile: {
     width: '48%',
@@ -955,7 +1155,6 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  entityTileRank: { color: COLORS.dim, fontSize: 10, fontWeight: '800' },
   entityTileCount: { fontSize: 16, fontWeight: '900' },
   entityVisual: {
     height: 62,
@@ -996,6 +1195,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: Platform.OS === 'android' ? 72 : 44,
+    maxHeight: SCREEN_H * 0.92,
   },
   editHeader: {
     flexDirection: 'row',
@@ -1024,7 +1224,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  routeSide: { flex: 1 },
+  routeSide: { flex: 1, minWidth: 0 },
   routeSideRight: { alignItems: 'flex-end' },
   routeTag: {
     color: COLORS.muted,
@@ -1040,7 +1240,7 @@ const s = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
     padding: 0,
-    minWidth: 80,
+    minWidth: 0,
   },
   iataInputRight: { textAlign: 'right' },
   iataInputSearch: {
@@ -1114,6 +1314,18 @@ const s = StyleSheet.create({
   detailRow: {
     paddingHorizontal: 18,
     paddingVertical: 14,
+  },
+  compactGrid: {
+    flexDirection: 'row',
+  },
+  compactCell: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  compactRule: {
+    width: 1,
+    backgroundColor: COLORS.line,
   },
   detailTag: {
     color: COLORS.muted,

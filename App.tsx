@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StatusBar as RNStatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { AddFlightModal } from './components/AddFlightModal';
 import { BottomSheet } from './components/BottomSheet';
 import { ErrorLogsModal } from './components/ErrorLogsModal';
@@ -22,11 +22,18 @@ const THEME = {
   teal: '#65d0c2',
 };
 
+(Text as any).defaultProps = (Text as any).defaultProps ?? {};
+(Text as any).defaultProps.allowFontScaling = false;
+(TextInput as any).defaultProps = (TextInput as any).defaultProps ?? {};
+(TextInput as any).defaultProps.allowFontScaling = false;
+
 const ACTIONS = {
   add: { label: 'Add', glyph: '+' },
   logbook: { label: 'Logbook', glyph: '≡' },
   logs: { label: 'Logs', glyph: '>_' },
 };
+
+const ACTION_TOP = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) + 12 : 54;
 
 export default function App() {
   const [addOpen,      setAddOpen]      = useState(false);
@@ -48,10 +55,12 @@ export default function App() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionBtn} onPress={() => setLogbookOpen(true)} activeOpacity={0.82}>
-            <View style={styles.logGlyph}>
-              <View style={styles.logLine} />
-              <View style={styles.logLine} />
-              <View style={[styles.logLine, styles.logLineShort]} />
+            <View style={styles.logbookGlyph}>
+              <View style={styles.logbookSpine} />
+              <View style={styles.logbookPage}>
+                <View style={styles.logbookLine} />
+                <View style={[styles.logbookLine, styles.logbookLineShort]} />
+              </View>
             </View>
           </TouchableOpacity>
 
@@ -76,7 +85,7 @@ const styles = StyleSheet.create({
   },
   actionRail: {
     position: 'absolute',
-    top: 54,
+    top: ACTION_TOP,
     right: 16,
     width: 58,
     padding: 5,
@@ -111,19 +120,36 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     fontWeight: '500',
   },
-  logGlyph: {
+  logbookGlyph: {
     width: 22,
-    gap: 5,
-    alignItems: 'flex-start',
+    height: 24,
+    borderWidth: 1.5,
+    borderColor: THEME.text,
+    borderRadius: 4,
+    flexDirection: 'row',
+    overflow: 'hidden',
   },
-  logLine: {
-    width: 22,
-    height: 2,
-    backgroundColor: THEME.text,
+  logbookSpine: {
+    width: 5,
+    height: '100%',
+    borderRightWidth: 1.5,
+    borderRightColor: THEME.text,
+    backgroundColor: 'rgba(240, 179, 90, 0.12)',
+  },
+  logbookPage: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingLeft: 4,
+    gap: 4,
+  },
+  logbookLine: {
+    width: 9,
+    height: 1.5,
     borderRadius: 1,
+    backgroundColor: THEME.text,
   },
-  logLineShort: {
-    width: 13,
+  logbookLineShort: {
+    width: 6,
   },
   terminalGlyph: {
     color: THEME.teal,

@@ -5,6 +5,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,7 +17,19 @@ import { AIRLINES } from '../data/airlines';
 import { insertFlight } from '../data/db';
 import { DatePickerField } from './DatePickerField';
 
-const ACCENT = 'rgb(0, 255, 175)';
+const COLORS = {
+  sheet: '#0c1826',
+  surface: 'rgba(20, 32, 51, 0.82)',
+  surface2: 'rgba(24, 40, 61, 0.84)',
+  line: 'rgba(117, 146, 170, 0.24)',
+  text: '#edf4f7',
+  muted: '#8392a5',
+  dim: '#536377',
+  amber: '#f0b35a',
+  ink: '#07111f',
+  whiteLine: 'rgba(255,255,255,0.07)',
+};
+const ACCENT = COLORS.amber;
 
 const SCREEN_H = Dimensions.get('window').height;
 
@@ -69,6 +82,11 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
   const [registration, setRegistration] = useState('');
   const [airline,     setAirline]     = useState('');
   const [date,        setDate]        = useState('');
+  const [msn,         setMsn]         = useState('');
+  const [depRunway,   setDepRunway]   = useState('');
+  const [arrRunway,   setArrRunway]   = useState('');
+  const [cruiseAltitude, setCruiseAltitude] = useState('');
+  const [cabinClass,  setCabinClass]  = useState('');
   const [activeSugs,    setActiveSugs]    = useState<Suggestion[]>([]);
   const [airlineSugs,   setAirlineSugs]   = useState<AirlineSuggestion[]>([]);
   const [activeField,   setActiveField]   = useState<'from' | 'to' | 'airline' | null>(null);
@@ -137,6 +155,11 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
       aircraft.trim()     || undefined,
       registration.trim().toUpperCase() || undefined,
       date.trim()         || undefined,
+      msn.trim().toUpperCase() || undefined,
+      depRunway.trim().toUpperCase() || undefined,
+      arrRunway.trim().toUpperCase() || undefined,
+      cruiseAltitude.trim() || undefined,
+      cabinClass.trim() || undefined,
     );
     setFromText('');
     setToText('');
@@ -144,6 +167,11 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
     setRegistration('');
     setAirline('');
     setDate('');
+    setMsn('');
+    setDepRunway('');
+    setArrRunway('');
+    setCruiseAltitude('');
+    setCabinClass('');
     setActiveSugs([]);
     onFlightChange();
     handleClose();
@@ -165,6 +193,12 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
             </TouchableOpacity>
           </View>
 
+          <ScrollView
+            style={s.formScroll}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={s.scrollContent}
+          >
             {/*route wrapper — suggestions float absolutely below it so layout is unaffected*/}
             <View style={s.routeWrapper}>
               <View style={s.routeCard} onLayout={e => setRouteH(e.nativeEvent.layout.height)}>
@@ -177,7 +211,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     onFocus={() => { setActiveField('from'); setActiveSugs(searchAirports(fromText)); }}
                     onBlur={onInputBlur}
                     placeholder="LHR"
-                    placeholderTextColor="#253548"
+                    placeholderTextColor={COLORS.dim}
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
@@ -198,7 +232,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     onFocus={() => { setActiveField('to'); setActiveSugs(searchAirports(toText)); }}
                     onBlur={onInputBlur}
                     placeholder="JFK"
-                    placeholderTextColor="#253548"
+                    placeholderTextColor={COLORS.dim}
                     autoCapitalize="none"
                     autoCorrect={false}
                     textAlign="right"
@@ -232,7 +266,20 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     value={aircraft}
                     onChangeText={setAircraft}
                     placeholder="Boeing 737-800"
-                    placeholderTextColor="#253548"
+                    placeholderTextColor={COLORS.dim}
+                  />
+                </View>
+                <View style={s.rule} />
+                <View style={s.detailRow}>
+                  <Text style={s.detailTag}>MSN</Text>
+                  <TextInput
+                    style={s.detailInput}
+                    value={msn}
+                    onChangeText={setMsn}
+                    placeholder="386"
+                    placeholderTextColor={COLORS.dim}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
                   />
                 </View>
                 <View style={s.rule} />
@@ -243,7 +290,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     value={registration}
                     onChangeText={setRegistration}
                     placeholder="G-XLEA"
-                    placeholderTextColor="#253548"
+                    placeholderTextColor={COLORS.dim}
                     autoCapitalize="characters"
                     autoCorrect={false}
                   />
@@ -261,8 +308,62 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     onFocus={() => { setActiveField('airline'); setAirlineSugs(searchAirlines(airline)); }}
                     onBlur={onInputBlur}
                     placeholder="British Airways"
-                    placeholderTextColor="#253548"
+                    placeholderTextColor={COLORS.dim}
                   />
+                </View>
+                <View style={s.rule} />
+                <View style={s.compactGrid}>
+                  <View style={s.compactCell}>
+                    <Text style={s.detailTag}>DEP RWY</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={depRunway}
+                      onChangeText={setDepRunway}
+                      placeholder="27L"
+                      placeholderTextColor={COLORS.dim}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  <View style={s.compactRule} />
+                  <View style={s.compactCell}>
+                    <Text style={s.detailTag}>ARR RWY</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={arrRunway}
+                      onChangeText={setArrRunway}
+                      placeholder="04R"
+                      placeholderTextColor={COLORS.dim}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+                <View style={s.rule} />
+                <View style={s.compactGrid}>
+                  <View style={s.compactCell}>
+                    <Text style={s.detailTag}>CRUISE ALT</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={cruiseAltitude}
+                      onChangeText={setCruiseAltitude}
+                      placeholder="FL380"
+                      placeholderTextColor={COLORS.dim}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  <View style={s.compactRule} />
+                  <View style={s.compactCell}>
+                    <Text style={s.detailTag}>CLASS</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={cabinClass}
+                      onChangeText={setCabinClass}
+                      placeholder="Economy"
+                      placeholderTextColor={COLORS.dim}
+                    />
+                  </View>
                 </View>
                 <View style={s.rule} />
                 <DatePickerField
@@ -289,10 +390,14 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
               )}
             </View>
 
-            <TouchableOpacity style={s.logBtn} onPress={handleSave}>
+          </ScrollView>
+
+          <View style={s.footer}>
+            <TouchableOpacity style={s.logBtn} onPress={handleSave} activeOpacity={0.86}>
               <Text style={s.logTxt}>Log Flight</Text>
               <Text style={s.logIcon}>✈</Text>
             </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Animated.View>
@@ -307,12 +412,15 @@ const s = StyleSheet.create({
   kav: { flex: 1 },
   spacer: { flex: 1 },
   sheet: {
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.sheet,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
     paddingHorizontal: 18,
     paddingTop: 22,
-    paddingBottom: Platform.OS === 'android' ? 88 : 44,
+    paddingBottom: Platform.OS === 'android' ? 72 : 44,
+    maxHeight: SCREEN_H * 0.92,
   },
   titleRow: {
     flexDirection: 'row',
@@ -321,9 +429,9 @@ const s = StyleSheet.create({
     marginBottom: 18,
   },
   title: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     flex: 1,
   },
   closeBtn: {
@@ -333,8 +441,14 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   closeTxt: {
-    color: '#4b5563',
+    color: COLORS.muted,
     fontSize: 17,
+  },
+  scrollContent: {
+    paddingBottom: 8,
+  },
+  formScroll: {
+    flexShrink: 1,
   },
 
   //route card (wrapper lifts suggestions above sibling views via zIndex)
@@ -343,17 +457,19 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   routeCard: {
-    backgroundColor: '#1a2535',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
     padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
   },
-  routeSide: { flex: 1 },
+  routeSide: { flex: 1, minWidth: 0 },
   routeSideRight: { alignItems: 'flex-end' },
   routeTag: {
-    color: '#4b5563',
+    color: COLORS.muted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
@@ -361,12 +477,12 @@ const s = StyleSheet.create({
   },
   routeTagRight: { textAlign: 'right' },
   iataInput: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 34,
     fontWeight: '700',
     letterSpacing: 2,
     padding: 0,
-    minWidth: 80,
+    minWidth: 0,
   },
   iataInputRight: { textAlign: 'right' },
   iataInputSearch: {
@@ -387,7 +503,7 @@ const s = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'rgba(240, 179, 90, 0.38)',
   },
-  planeTxt: { color: '#f0b35a', fontSize: 22, lineHeight: 24, paddingHorizontal: 5 },
+  planeTxt: { color: COLORS.amber, fontSize: 22, lineHeight: 24, paddingHorizontal: 5 },
 
   //suggestion dropdown — floats over detail card, no layout impact
   sugList: {
@@ -395,9 +511,11 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: '#1a2535',
+    backgroundColor: COLORS.surface2,
     borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
   },
   sugItem: {
     flexDirection: 'row',
@@ -413,13 +531,13 @@ const s = StyleSheet.create({
     width: 36,
   },
   sugName: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 13,
     flex: 1,
   },
   sugRule: {
     height: 1,
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.line,
     marginLeft: 16,
   },
 
@@ -429,43 +547,59 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   detailCard: {
-    backgroundColor: '#1a2535',
-    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
     overflow: 'hidden',
   },
   detailRow: {
     paddingHorizontal: 18,
     paddingVertical: 14,
   },
+  compactGrid: {
+    flexDirection: 'row',
+  },
+  compactCell: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  compactRule: {
+    width: 1,
+    backgroundColor: COLORS.line,
+  },
   detailTag: {
-    color: '#4b5563',
+    color: COLORS.muted,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
     marginBottom: 6,
   },
   detailInput: {
-    color: '#f3f4f6',
+    color: COLORS.text,
     fontSize: 15,
     padding: 0,
   },
   rule: {
     height: 1,
-    backgroundColor: '#111827',
+    backgroundColor: COLORS.line,
   },
 
   //log button
+  footer: {
+    paddingTop: 10,
+  },
   logBtn: {
-    backgroundColor: '#0f1e30',
-    borderRadius: 14,
+    backgroundColor: 'rgba(240, 179, 90, 0.12)',
+    borderRadius: 8,
     paddingVertical: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 2,
     borderWidth: 1,
-    borderColor: 'rgba(0, 255, 175, 0.2)',
+    borderColor: 'rgba(240, 179, 90, 0.28)',
   },
   logTxt: {
     color: ACCENT,
