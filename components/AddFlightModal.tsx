@@ -278,7 +278,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     style={s.detailInput}
                     value={msn}
                     onChangeText={setMsn}
-                    placeholder="386214"
+                    placeholder="38621"
                     placeholderTextColor={COLORS.dim}
                     autoCapitalize="characters"
                     autoCorrect={false}
