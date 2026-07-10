@@ -555,13 +555,13 @@ export function Globe({ refreshKey = 0, onReady }: GlobeProps) {
             ]}
           >
             <View style={styles.airportTopRow}>
-              <Text style={styles.airportCode}>{selectedAirport.code}</Text>
-              <Text style={styles.airportVisits}>
+              <Text style={styles.airportCode} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{selectedAirport.code}</Text>
+              <Text style={styles.airportVisits} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>
                 {selectedAirport.visits} {selectedAirport.visits === 1 ? 'Visit' : 'Visits'}
               </Text>
             </View>
-            <Text style={styles.airportName} numberOfLines={2}>{selectedAirport.name}</Text>
-            <Text style={styles.airportPlace} numberOfLines={1}>
+            <Text style={styles.airportName} numberOfLines={2} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.74}>{selectedAirport.name}</Text>
+            <Text style={styles.airportPlace} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.74}>
               {selectedAirport.city}{selectedAirport.country ? `, ${selectedAirport.country}` : ''}
             </Text>
           </View>
@@ -637,5 +637,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '900',
+    minWidth: 54,
+    flexShrink: 1,
+    textAlign: 'right',
   },
 });

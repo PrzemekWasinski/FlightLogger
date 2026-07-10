@@ -22,8 +22,10 @@ const THEME = {
 
 (Text as any).defaultProps = (Text as any).defaultProps ?? {};
 (Text as any).defaultProps.allowFontScaling = false;
+(Text as any).defaultProps.maxFontSizeMultiplier = 1;
 (TextInput as any).defaultProps = (TextInput as any).defaultProps ?? {};
 (TextInput as any).defaultProps.allowFontScaling = false;
+(TextInput as any).defaultProps.maxFontSizeMultiplier = 1;
 
 const ACTIONS = {
   add: { label: 'Add', glyph: '+' },
@@ -106,13 +108,13 @@ export default function App() {
 
       {!ready && (
         <View style={styles.loading}>
-          <Text style={styles.loadingTitle}>FlightLogger</Text>
+          <Text style={styles.loadingTitle} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>Flight Logger</Text>
           <View style={styles.loadingTrackWrap}>
             <View style={styles.loadingTrack}>
               <View style={[styles.loadingFill, { width: `${loadPct}%` }]} />
             </View>
           </View>
-          <Text style={styles.loadingPct}>{loadPct}%</Text>
+          <Text style={styles.loadingPct} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>{loadPct}%</Text>
         </View>
       )}
 
@@ -259,5 +261,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     marginTop: 12,
+    minWidth: 44,
+    textAlign: 'center',
   },
 });

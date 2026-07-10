@@ -24,7 +24,7 @@ interface Props {
 function LogRow({ item }: { item: LogEntry }) {
   const prefix = item.level === 'error' ? 'ERR' : item.level === 'warn' ? 'WRN' : 'INF';
   return (
-    <Text style={s.row} selectable>
+    <Text style={s.row} selectable allowFontScaling={false}>
       <Text style={s.time}>{item.time}  </Text>
       <Text style={s.prefix}>{prefix}  </Text>
       <Text style={s.msg}>{item.message}</Text>
@@ -57,13 +57,13 @@ export function ErrorLogsModal({ visible, onClose }: Props) {
       pointerEvents={visible ? 'auto' : 'none'}
     >
       <View style={s.header}>
-        <Text style={s.title}>Logs</Text>
+        <Text style={s.title} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>Logs</Text>
         <View style={s.headerRight}>
           <TouchableOpacity onPress={handleClear} style={s.clearBtn}>
-            <Text style={s.clearTxt}>Clear</Text>
+            <Text style={s.clearTxt} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>Clear</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} style={s.closeBtn}>
-            <Text style={s.closeTxt}>✕</Text>
+            <Text style={s.closeTxt} allowFontScaling={false}>✕</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -74,7 +74,7 @@ export function ErrorLogsModal({ visible, onClose }: Props) {
         renderItem={({ item }) => <LogRow item={item} />}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<Text style={s.empty}>No logs</Text>}
+        ListEmptyComponent={<Text style={s.empty} allowFontScaling={false}>No logs</Text>}
       />
     </Animated.View>
   );

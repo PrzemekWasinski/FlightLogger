@@ -100,10 +100,16 @@ function topN(map: Map<string, number>, n: number): { label: string; value: numb
   return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, n).map(([label, value]) => ({ label, value }));
 }
 
+function hasSpecialLivery(value?: string): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return !!normalized && normalized !== 'none';
+}
+
 function computeStats() {
   const flights = getAllFlights();
 
   let totalKm = 0;
+  let specialAircraft = 0;
   let longestFlight: Flight | null = null;
 
   const countrySet    = new Set<string>();
@@ -124,6 +130,7 @@ function computeStats() {
 
   for (const f of flights) {
     totalKm += f.distance_km ?? 0;
+    if (hasSpecialLivery(f.special)) specialAircraft += 1;
     if (!longestFlight || (f.distance_km ?? 0) > (longestFlight.distance_km ?? 0)) longestFlight = f;
 
     const fromAp = AIRPORTS[f.from];
@@ -211,6 +218,7 @@ function computeStats() {
     kmStr,
     countries:       countrySet.size,
     continents:      continentSet.size,
+    specialAircraft,
     uniqueAircraft:  aircraftSet.size,
     uniqueAirlines:  airlineSet.size,
     uniqueAirports:  airportSet.size,
@@ -305,7 +313,7 @@ function SectionHeader({ title }: { title: string; color?: string }) {
 }
 
 function EmptyChart() {
-  return <Text style={chart.empty}>no data yet</Text>;
+  return <Text style={chart.empty} allowFontScaling={false}>no data yet</Text>;
 }
 
 function airportChartLabel(code: string): string {
@@ -328,12 +336,12 @@ function RankedRunwayChart({ data, color, wash }: { data: { label: string; value
             <View style={chart.rankMeta}>
               {label.includes('|')
                 ? <View style={chart.rankAirportLabel}>
-                    <Text style={[chart.rankAirportCode, { color }]} numberOfLines={1}>{label.split('|')[0]}</Text>
-                    <Text style={chart.rankAirportName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{label.split('|')[1]}</Text>
+                    <Text style={[chart.rankAirportCode, { color }]} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{label.split('|')[0]}</Text>
+                    <Text style={chart.rankAirportName} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{label.split('|')[1]}</Text>
                   </View>
-                : <Text style={chart.rankLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
+                : <Text style={chart.rankLabel} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
               }
-              <Text style={[chart.rankValue, { color }]} allowFontScaling={false}>{value}</Text>
+              <Text style={[chart.rankValue, { color }]} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{value}</Text>
             </View>
             <View style={chart.runway}>
               <View style={[chart.runwayFill, { width: topPercent(value, max), backgroundColor: color }]} />
@@ -347,17 +355,17 @@ function RankedRunwayChart({ data, color, wash }: { data: { label: string; value
 }
 
 function FleetTilesChart({ data }: { data: { label: string; value: number }[] }) {
-  if (!data.length) return <Text style={chart.empty}>no data</Text>;
+  if (!data.length) return <Text style={chart.empty} allowFontScaling={false}>no data</Text>;
   const max = Math.max(...data.map(d => d.value), 1);
   return (
     <View style={chart.fleetGrid}>
       {data.map(({ label, value }) => (
         <View key={label} style={chart.fleetTile}>
           <View style={chart.fleetTop}>
-            <Text style={chart.fleetCount} allowFontScaling={false}>{value} {value === 1 ? 'Flight' : 'Flights'}</Text>
+            <Text style={chart.fleetCount} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{value} {value === 1 ? 'Flight' : 'Flights'}</Text>
           </View>
           <Image source={getAircraftImage(label)} style={chart.fleetImage} resizeMode="contain" />
-          <Text style={chart.fleetLabel} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.72}>{label}</Text>
+          <Text style={chart.fleetLabel} numberOfLines={2} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{label}</Text>
           <View style={chart.fleetTrack}>
             <View style={[chart.fleetFill, { width: topPercent(value, max) }]} />
           </View>
@@ -391,8 +399,8 @@ function ShareStackChart({ data }: { data: { label: string; value: number }[] })
         {data.map((item, i) => (
           <View key={item.label} style={chart.shareItem}>
             <View style={[chart.shareDot, { backgroundColor: palette[i % palette.length] }]} />
-            <Text style={chart.shareLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{item.label}</Text>
-            <Text style={chart.shareValue} allowFontScaling={false}>{Math.round((item.value / total) * 100)}%</Text>
+            <Text style={chart.shareLabel} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.7}>{item.label}</Text>
+            <Text style={chart.shareValue} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>{Math.round((item.value / total) * 100)}%</Text>
           </View>
         ))}
       </View>
@@ -406,7 +414,7 @@ function TowerChart({ data, color }: { data: { label: string; value: number }[];
     <View style={chart.towerWrap}>
       {data.map(({ label, value }) => (
         <View key={label} style={chart.towerCol}>
-          <Text style={[chart.towerCount, value > 0 ? { color } : null]} allowFontScaling={false}>{value || ''}</Text>
+          <Text style={[chart.towerCount, value > 0 ? { color } : null]} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{value || ''}</Text>
           <View style={chart.towerLane}>
             <View style={[chart.towerFill, {
               height: topPercent(value, max),
@@ -414,7 +422,7 @@ function TowerChart({ data, color }: { data: { label: string; value: number }[];
             }]} />
             <View style={chart.towerMarker} />
           </View>
-          <Text style={chart.towerLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
+          <Text style={chart.towerLabel} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
         </View>
       ))}
     </View>
@@ -439,11 +447,11 @@ function ActivityRibbonChart({ data }: { data: { label: string; value: number }[
                   transform: [{ scaleY: active ? 0.72 + level * 0.28 : 0.72 }],
                 },
               ]}>
-                <Text style={[chart.ribbonValue, active && { color: COLORS.ink }]} allowFontScaling={false}>
+                <Text style={[chart.ribbonValue, active && { color: COLORS.ink }]} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>
                   {active ? value : ''}
                 </Text>
               </View>
-              <Text style={chart.ribbonLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>{label}</Text>
+              <Text style={chart.ribbonLabel} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.65}>{label}</Text>
             </View>
           );
         })}
@@ -470,10 +478,10 @@ function WeekdayDialChart({ data }: { data: { label: string; value: number }[] }
           <View key={label} style={chart.dialCard}>
             <View style={[chart.dialRing, { borderColor: color, opacity: value > 0 ? 1 : 0.42 }]}>
               <View style={[chart.dialCore, { backgroundColor: value > 0 ? color : 'transparent' }]}>
-                <Text style={[chart.dialValue, value > 0 && { color: COLORS.ink }]} allowFontScaling={false}>{value}</Text>
+                <Text style={[chart.dialValue, value > 0 && { color: COLORS.ink }]} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>{value}</Text>
               </View>
             </View>
-            <Text style={chart.dialLabel}>{label}</Text>
+            <Text style={chart.dialLabel} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>{label}</Text>
           </View>
         );
       })}
@@ -487,8 +495,7 @@ interface BottomSheetProps { hidden?: boolean; }
 
 export function BottomSheet({ hidden = false }: BottomSheetProps) {
   //snapBottomRef is set from onLayout so it uses the real container height rather
-  //than Dimensions.get('window') which differs between Expo Go and a production
-  //edge-to-edge APK (edgeToEdgeEnabled:true makes the window include the nav-bar area)
+  //than relying only on Dimensions.get('window'), which can vary by Android device.
   const snapBottomRef = useRef(SCREEN_H - PEEK_H);
   const firstLayout   = useRef(true);
 
@@ -634,7 +641,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
           <CounterCard label="Airports"   value={stats.uniqueAirports} />
           <CounterCard label="Routes"     value={stats.uniqueRoutes} />
           <CounterCard label="Countries"  value={stats.countries} />
-          <CounterCard label="Continents" value={stats.continents} />
+          <CounterCard label="Special Aircraft" value={stats.specialAircraft} />
         </View>
 
         {/*charts*/}
@@ -865,7 +872,7 @@ const chart = StyleSheet.create({
   rankAirportLabel: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', marginRight: 10, gap: 8 },
   rankAirportCode: { fontSize: 13, fontWeight: '900', minWidth: 34 },
   rankAirportName: { color: COLORS.text, fontSize: 12, fontWeight: '700', flex: 1 },
-  rankValue: { fontSize: 13, fontWeight: '800' },
+  rankValue: { fontSize: 13, fontWeight: '800', minWidth: 28, textAlign: 'right' },
   runway: {
     height: 8,
     borderRadius: 4,
@@ -894,7 +901,7 @@ const chart = StyleSheet.create({
     borderColor: COLORS.whiteLine,
   },
   fleetTop: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
-  fleetCount: { color: COLORS.blue, fontSize: 16, fontWeight: '900' },
+  fleetCount: { color: COLORS.blue, fontSize: 16, fontWeight: '900', width: '100%' },
   fleetImage: { width: '118%', alignSelf: 'center', height: COMPACT_W ? 88 : 100, marginTop: -1 },
   fleetLabel: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center', marginTop: 2 },
   fleetTrack: {
@@ -919,8 +926,8 @@ const chart = StyleSheet.create({
   shareLegend: { marginTop: 12, gap: 8 },
   shareItem: { flexDirection: 'row', alignItems: 'center' },
   shareDot: { width: 9, height: 9, borderRadius: 5, marginRight: 8 },
-  shareLabel: { color: COLORS.text, fontSize: 13, fontWeight: '700', flex: 1 },
-  shareValue: { color: COLORS.muted, fontSize: 12, fontWeight: '800' },
+  shareLabel: { color: COLORS.text, fontSize: 13, fontWeight: '700', flex: 1, minWidth: 0 },
+  shareValue: { color: COLORS.muted, fontSize: 12, fontWeight: '800', minWidth: 34, textAlign: 'right' },
 
   towerWrap: {
     height: 166,
@@ -929,7 +936,7 @@ const chart = StyleSheet.create({
     gap: 9,
   },
   towerCol: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  towerCount: { color: COLORS.dim, fontSize: 10, fontWeight: '800', marginBottom: 5 },
+  towerCount: { color: COLORS.dim, fontSize: 10, fontWeight: '800', marginBottom: 5, minWidth: 18, textAlign: 'center' },
   towerLane: {
     width: '82%',
     flex: 1,
@@ -963,7 +970,7 @@ const chart = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.whiteLine,
   },
-  ribbonValue: { color: COLORS.dim, fontSize: 10, fontWeight: '900' },
+  ribbonValue: { color: COLORS.dim, fontSize: 10, fontWeight: '900', minWidth: 16, textAlign: 'center' },
   ribbonLabel: { color: COLORS.muted, fontSize: 8, fontWeight: '800', marginTop: 7, width: '100%', textAlign: 'center' },
 
   dialGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
@@ -994,6 +1001,13 @@ const chart = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  dialValue: { color: COLORS.dim, fontSize: 12, fontWeight: '900' },
-  dialLabel: { color: COLORS.muted, fontSize: 10, fontWeight: '800', marginTop: 7 },
+  dialValue: { color: COLORS.dim, fontSize: 12, fontWeight: '900', minWidth: 18, textAlign: 'center' },
+  dialLabel: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 7,
+    minWidth: 28,
+    textAlign: 'center',
+  },
 });

@@ -66,10 +66,13 @@ export function DatePickerField({ value, onChange, rowStyle, tagStyle, inputStyl
   return (
     <>
       <TouchableOpacity style={rowStyle} onPress={open} activeOpacity={0.7}>
-        <Text style={tagStyle}>DATE</Text>
+        <Text style={tagStyle} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>DATE</Text>
         <Text
           style={[inputStyle, s.value, !value && s.placeholder]}
+          numberOfLines={1}
           allowFontScaling={false}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
         >
           {value ? formatDate(value) : 'select a date'}
         </Text>
@@ -82,10 +85,10 @@ export function DatePickerField({ value, onChange, rowStyle, tagStyle, inputStyl
             <View style={s.sheet}>
               <View style={s.header}>
                 <TouchableOpacity onPress={() => setShow(false)}>
-                  <Text style={s.cancelTxt}>Cancel</Text>
+                  <Text style={s.cancelTxt} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={confirm}>
-                  <Text style={s.doneTxt}>Done</Text>
+                  <Text style={s.doneTxt} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>Done</Text>
                 </TouchableOpacity>
               </View>
               <DateTimePicker

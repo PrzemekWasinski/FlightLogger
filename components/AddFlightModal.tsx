@@ -34,6 +34,7 @@ const ACCENT = COLORS.amber;
 
 const SCREEN_H = Dimensions.get('window').height;
 const SAFE_TOP = Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 24) + 14 : 54;
+const NO_SPECIAL_LIVERY = 'None';
 
 interface Props {
   visible: boolean;
@@ -87,7 +88,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
   const [flightNumber, setFlightNumber] = useState('');
   const [flightStatus, setFlightStatus] = useState('');
   const [notes,       setNotes]       = useState('');
-  const [special,     setSpecial]     = useState('');
+  const [special,     setSpecial]     = useState(NO_SPECIAL_LIVERY);
   const [msn,         setMsn]         = useState('');
   const [depRunway,   setDepRunway]   = useState('');
   const [arrRunway,   setArrRunway]   = useState('');
@@ -164,7 +165,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
       flightNumber.trim().toUpperCase() || undefined,
       flightStatus.trim() || undefined,
       notes.trim() || undefined,
-      special.trim() || undefined,
+      special.trim() || NO_SPECIAL_LIVERY,
       msn.trim().toUpperCase() || undefined,
       depRunway.trim().toUpperCase() || undefined,
       arrRunway.trim().toUpperCase() || undefined,
@@ -180,7 +181,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
     setFlightNumber('');
     setFlightStatus('');
     setNotes('');
-    setSpecial('');
+    setSpecial(NO_SPECIAL_LIVERY);
     setMsn('');
     setDepRunway('');
     setArrRunway('');
@@ -196,14 +197,13 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
       style={[s.overlay, { transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      {/*kav is flex:1 — the spacer above the sheet absorbs the keyboard height*/}
-      <KeyboardAvoidingView style={s.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} pointerEvents="box-none">
+      <KeyboardAvoidingView style={s.kav} behavior={Platform.OS === 'ios' ? 'padding' : undefined} pointerEvents="box-none">
         <View style={s.spacer} pointerEvents="none" />
         <View style={s.sheet}>
           <View style={s.titleRow}>
-            <Text style={s.title}>New Flight</Text>
+            <Text style={s.title} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.76}>New Flight</Text>
             <TouchableOpacity onPress={handleClose} style={s.closeBtn}>
-              <Text style={s.closeTxt}>✕</Text>
+              <Text style={s.closeTxt} allowFontScaling={false}>✕</Text>
             </TouchableOpacity>
           </View>
 
@@ -217,7 +217,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
             <View style={s.routeWrapper}>
               <View style={s.routeCard} onLayout={e => setRouteH(e.nativeEvent.layout.height)}>
                 <View style={s.routeSide}>
-                  <Text style={s.routeTag}>FROM</Text>
+                  <Text style={s.routeTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>FROM</Text>
                   <TextInput
                     style={[s.iataInput, fromText.length > 4 && s.iataInputSearch]}
                     value={fromText}
@@ -233,12 +233,12 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
 
                 <View style={s.routeMid}>
                   <View style={s.routeLine} />
-                  <Text style={s.planeTxt}>✈</Text>
+                  <Text style={s.planeTxt} allowFontScaling={false}>✈</Text>
                   <View style={s.routeLine} />
                 </View>
 
                 <View style={[s.routeSide, s.routeSideRight]}>
-                  <Text style={[s.routeTag, s.routeTagRight]}>TO</Text>
+                  <Text style={[s.routeTag, s.routeTagRight]} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>TO</Text>
                   <TextInput
                     style={[s.iataInput, s.iataInputRight, toText.length > 4 && s.iataInputSearch]}
                     value={toText}
@@ -261,8 +261,8 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     <React.Fragment key={sug.code}>
                       {idx > 0 && <View style={s.sugRule} />}
                       <TouchableOpacity style={s.sugItem} onPress={() => selectSuggestion(sug.code)}>
-                        <Text style={s.sugCode}>{sug.code}</Text>
-                        <Text style={s.sugName} numberOfLines={1}>{sug.name}</Text>
+                        <Text style={s.sugCode} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.7}>{sug.code}</Text>
+                        <Text style={s.sugName} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>{sug.name}</Text>
                       </TouchableOpacity>
                     </React.Fragment>
                   ))}
@@ -274,7 +274,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
             <View style={s.detailOuter}>
               <View style={s.detailCard}>
                 <View style={s.detailRow}>
-                  <Text style={s.detailTag}>FLIGHT NUMBER</Text>
+                  <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>FLIGHT NUMBER</Text>
                   <TextInput
                     style={s.detailInput}
                     value={flightNumber}
@@ -287,7 +287,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                 </View>
                 <View style={s.rule} />
                 <View style={s.detailRow}>
-                  <Text style={s.detailTag}>AIRCRAFT</Text>
+                  <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>AIRCRAFT</Text>
                   <TextInput
                     style={s.detailInput}
                     value={aircraft}
@@ -298,7 +298,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                 </View>
                 <View style={s.rule} />
                 <View style={s.detailRow}>
-                  <Text style={s.detailTag}>MSN</Text>
+                  <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>MSN</Text>
                   <TextInput
                     style={s.detailInput}
                     value={msn}
@@ -311,7 +311,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                 </View>
                 <View style={s.rule} />
                 <View style={s.detailRow}>
-                  <Text style={s.detailTag}>REGISTRATION</Text>
+                  <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>REGISTRATION</Text>
                   <TextInput
                     style={s.detailInput}
                     value={registration}
@@ -327,7 +327,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                   style={s.detailRow}
                   onLayout={e => setAirlineSugTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
                 >
-                  <Text style={s.detailTag}>AIRLINE</Text>
+                  <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>AIRLINE</Text>
                   <TextInput
                     style={s.detailInput}
                     value={airline}
@@ -340,7 +340,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                 </View>
                 <View style={s.rule} />
                 <View style={s.detailRow}>
-                  <Text style={s.detailTag}>FLIGHT STATUS</Text>
+                  <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>FLIGHT STATUS</Text>
                   <TextInput
                     style={s.detailInput}
                     value={flightStatus}
@@ -353,7 +353,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                 <View style={s.rule} />
                 <View style={s.compactGrid}>
                   <View style={s.compactCell}>
-                    <Text style={s.detailTag}>DEP RWY</Text>
+                    <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>DEP RWY</Text>
                     <TextInput
                       style={s.detailInput}
                       value={depRunway}
@@ -366,7 +366,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                   </View>
                   <View style={s.compactRule} />
                   <View style={s.compactCell}>
-                    <Text style={s.detailTag}>ARR RWY</Text>
+                    <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>ARR RWY</Text>
                     <TextInput
                       style={s.detailInput}
                       value={arrRunway}
@@ -381,7 +381,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                 <View style={s.rule} />
                 <View style={s.compactGrid}>
                   <View style={s.compactCell}>
-                    <Text style={s.detailTag}>CRUISE ALT</Text>
+                    <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>CRUISE ALT</Text>
                     <TextInput
                       style={s.detailInput}
                       value={cruiseAltitude}
@@ -394,7 +394,7 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                   </View>
                   <View style={s.compactRule} />
                   <View style={s.compactCell}>
-                    <Text style={s.detailTag}>CLASS</Text>
+                    <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>CLASS</Text>
                     <TextInput
                       style={s.detailInput}
                       value={cabinClass}
@@ -406,18 +406,30 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                 </View>
                 <View style={s.rule} />
                 <View style={s.detailRow}>
-                  <Text style={s.detailTag}>SPECIAL LIVERY</Text>
-                  <TextInput
-                    style={s.detailInput}
-                    value={special}
-                    onChangeText={setSpecial}
-                    placeholder="Special Livery"
-                    placeholderTextColor={COLORS.dim}
-                  />
+                  <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>SPECIAL LIVERY</Text>
+                  <View style={s.optionInputRow}>
+                    <TextInput
+                      style={[s.detailInput, s.optionInput]}
+                      value={special}
+                      onChangeText={setSpecial}
+                      onFocus={() => { if (special.trim().toLowerCase() === NO_SPECIAL_LIVERY.toLowerCase()) setSpecial(''); }}
+                      placeholder="Special livery name"
+                      placeholderTextColor={COLORS.dim}
+                    />
+                    <TouchableOpacity
+                      style={[s.noneBtn, special.trim().toLowerCase() === NO_SPECIAL_LIVERY.toLowerCase() && s.noneBtnActive]}
+                      onPress={() => setSpecial(NO_SPECIAL_LIVERY)}
+                      activeOpacity={0.82}
+                    >
+                      <Text style={[s.noneBtnText, special.trim().toLowerCase() === NO_SPECIAL_LIVERY.toLowerCase() && s.noneBtnTextActive]} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.72}>
+                        None
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View style={s.rule} />
                 <View style={s.detailRow}>
-                  <Text style={s.detailTag}>NOTES</Text>
+                  <Text style={s.detailTag} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.62}>NOTES</Text>
                   <TextInput
                     style={[s.detailInput, s.notesInput]}
                     value={notes}
@@ -444,8 +456,8 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     <React.Fragment key={sug.icao}>
                       {idx > 0 && <View style={s.sugRule} />}
                       <TouchableOpacity style={s.sugItem} onPress={() => selectAirline(sug.name)}>
-                        <Text style={s.sugCode}>{sug.icao}</Text>
-                        <Text style={s.sugName} numberOfLines={1}>{sug.name}</Text>
+                        <Text style={s.sugCode} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.7}>{sug.icao}</Text>
+                        <Text style={s.sugName} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.78}>{sug.name}</Text>
                       </TouchableOpacity>
                     </React.Fragment>
                   ))}
@@ -457,8 +469,8 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
 
           <View style={s.footer}>
             <TouchableOpacity style={s.logBtn} onPress={handleSave} activeOpacity={0.86}>
-              <Text style={s.logTxt}>Log Flight</Text>
-              <Text style={s.logIcon}>✈</Text>
+              <Text style={s.logTxt} numberOfLines={1} allowFontScaling={false} adjustsFontSizeToFit minimumFontScale={0.76}>Log Flight</Text>
+              <Text style={s.logIcon} allowFontScaling={false}>✈</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -472,7 +484,11 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
   },
-  kav: { flex: 1 },
+  kav: {
+    flex: 1,
+    paddingTop: SAFE_TOP,
+    justifyContent: 'flex-end',
+  },
   spacer: { flex: 1 },
   sheet: {
     backgroundColor: COLORS.sheet,
@@ -483,7 +499,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: Platform.OS === 'android' ? 72 : 44,
-    maxHeight: SCREEN_H - SAFE_TOP,
+    maxHeight: SCREEN_H - SAFE_TOP - 8,
   },
   titleRow: {
     flexDirection: 'row',
@@ -496,6 +512,8 @@ const s = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     flex: 1,
+    minWidth: 0,
+    lineHeight: 23,
   },
   closeBtn: {
     width: 32,
@@ -535,8 +553,9 @@ const s = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 1,
     marginBottom: 6,
+    width: '100%',
   },
   routeTagRight: { textAlign: 'right' },
   iataInput: {
@@ -597,6 +616,7 @@ const s = StyleSheet.create({
     color: COLORS.text,
     fontSize: 13,
     flex: 1,
+    minWidth: 0,
   },
   sugRule: {
     height: 1,
@@ -636,13 +656,46 @@ const s = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 1,
     marginBottom: 6,
+    width: '100%',
   },
   detailInput: {
     color: COLORS.text,
     fontSize: 15,
     padding: 0,
+  },
+  optionInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  optionInput: {
+    flex: 1,
+    minWidth: 0,
+  },
+  noneBtn: {
+    minWidth: 58,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+    backgroundColor: COLORS.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  noneBtnActive: {
+    borderColor: 'rgba(255, 138, 61, 0.36)',
+    backgroundColor: 'rgba(255, 138, 61, 0.12)',
+  },
+  noneBtnText: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  noneBtnTextActive: {
+    color: COLORS.amber,
   },
   notesInput: {
     minHeight: 92,
