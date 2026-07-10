@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -156,12 +156,24 @@ function formatAltitude(value?: string): string | undefined {
 
 type LogbookTab = 'flights' | 'aircraft' | 'airlines' | 'airports';
 type CountItem = { key: string; label: string; sublabel: string; count: number; image?: any; code?: string };
+type FlightSortKey = 'date' | 'aircraft' | 'airline' | 'registration' | 'msn' | 'route' | 'distance';
+type SortDir = 'asc' | 'desc';
 
 const TABS: { key: LogbookTab; label: string }[] = [
   { key: 'flights',  label: 'Flights' },
   { key: 'aircraft', label: 'Aircraft' },
   { key: 'airlines', label: 'Airlines' },
   { key: 'airports', label: 'Airports' },
+];
+
+const SORT_OPTIONS: { key: FlightSortKey; label: string }[] = [
+  { key: 'date', label: 'Date' },
+  { key: 'aircraft', label: 'Aircraft' },
+  { key: 'airline', label: 'Airline' },
+  { key: 'registration', label: 'Reg' },
+  { key: 'msn', label: 'MSN' },
+  { key: 'route', label: 'Route' },
+  { key: 'distance', label: 'Km' },
 ];
 
 function makeCountItems(
@@ -179,6 +191,52 @@ function makeCountItems(
   return Array.from(counts.entries())
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([key, count]) => describe(key, count));
+}
+
+function flightSearchText(flight: Flight): string {
+  const fromName = getAirportName(flight.from);
+  const toName = getAirportName(flight.to);
+  return [
+    flight.id,
+    flight.from,
+    fromName,
+    flight.to,
+    toName,
+    flight.airline,
+    flight.aircraft,
+    flight.registration,
+    flight.date,
+    flight.msn,
+    flight.dep_runway,
+    flight.arr_runway,
+    flight.cruise_altitude,
+    flight.cabin_class,
+    flight.distance_km ? Math.round(flight.distance_km) : undefined,
+  ].filter(value => value !== undefined && value !== null).join(' ').toLowerCase();
+}
+
+function countItemSearchText(item: CountItem): string {
+  return [item.key, item.code, item.label, item.sublabel, item.count].filter(Boolean).join(' ').toLowerCase();
+}
+
+function flightSortValue(flight: Flight, key: FlightSortKey): string | number {
+  if (key === 'date') return flight.date ? new Date(flight.date).getTime() || 0 : 0;
+  if (key === 'aircraft') return flight.aircraft?.toLowerCase() ?? '';
+  if (key === 'airline') return flight.airline?.toLowerCase() ?? '';
+  if (key === 'registration') return flight.registration?.toLowerCase() ?? '';
+  if (key === 'msn') return flight.msn?.toLowerCase() ?? '';
+  if (key === 'route') return `${flight.from}-${flight.to}`.toLowerCase();
+  return flight.distance_km ?? 0;
+}
+
+function sortFlights(flights: Flight[], key: FlightSortKey, dir: SortDir): Flight[] {
+  const modifier = dir === 'asc' ? 1 : -1;
+  return [...flights].sort((a, b) => {
+    const av = flightSortValue(a, key);
+    const bv = flightSortValue(b, key);
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * modifier || (a.id - b.id);
+    return String(av).localeCompare(String(bv)) * modifier || (a.id - b.id);
+  });
 }
 
 function topPercent(value: number, max: number): `${number}%` {
@@ -354,6 +412,9 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
 
   const [flights,         setFlights]         = useState<Flight[]>([]);
   const [activeTab,       setActiveTab]       = useState<LogbookTab>('flights');
+  const [searchText,      setSearchText]      = useState('');
+  const [sortKey,         setSortKey]         = useState<FlightSortKey>('date');
+  const [sortDir,         setSortDir]         = useState<SortDir>('desc');
   const [editingFlight,   setEditingFlight]   = useState<Flight | null>(null);
   const [editFrom,        setEditFrom]        = useState('');
   const [editTo,          setEditTo]          = useState('');
@@ -501,6 +562,15 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     onFlightChange();
   }
 
+  function selectSort(nextKey: FlightSortKey) {
+    if (nextKey === sortKey) {
+      setSortDir(dir => dir === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDir(nextKey === 'date' || nextKey === 'distance' ? 'desc' : 'asc');
+  }
+
   const aircraftItems = makeCountItems(
     flights,
     flight => flight.aircraft ? [flight.aircraft] : [],
@@ -544,13 +614,33 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     airports: airportItems.length,
   };
 
+  const query = searchText.trim().toLowerCase();
+  const visibleFlights = useMemo(() => {
+    const filtered = query
+      ? flights.filter(flight => flightSearchText(flight).includes(query))
+      : flights;
+    return sortFlights(filtered, sortKey, sortDir);
+  }, [flights, query, sortKey, sortDir]);
+
+  const visibleAircraftItems = useMemo(() => (
+    query ? aircraftItems.filter(item => countItemSearchText(item).includes(query)) : aircraftItems
+  ), [aircraftItems, query]);
+
+  const visibleAirlineItems = useMemo(() => (
+    query ? airlineItems.filter(item => countItemSearchText(item).includes(query)) : airlineItems
+  ), [airlineItems, query]);
+
+  const visibleAirportItems = useMemo(() => (
+    query ? airportItems.filter(item => countItemSearchText(item).includes(query)) : airportItems
+  ), [airportItems, query]);
+
   const currentData = activeTab === 'flights'
-    ? flights
+    ? visibleFlights
     : activeTab === 'aircraft'
-      ? aircraftItems
+      ? visibleAircraftItems
       : activeTab === 'airlines'
-        ? airlineItems
-        : airportItems;
+        ? visibleAirlineItems
+        : visibleAirportItems;
   const currentCountMax = activeTab === 'flights'
     ? 1
     : Math.max(...(currentData as CountItem[]).map(item => item.count), 1);
@@ -578,6 +668,12 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   }
 
   function emptyText(): string {
+    if (query) {
+      if (activeTab === 'flights') return 'no matching flights';
+      if (activeTab === 'aircraft') return 'no matching aircraft';
+      if (activeTab === 'airlines') return 'no matching airlines';
+      return 'no matching airports';
+    }
     if (activeTab === 'flights') return 'no flights logged yet';
     if (activeTab === 'aircraft') return 'no aircraft logged yet';
     if (activeTab === 'airlines') return 'no airlines logged yet';
@@ -604,6 +700,40 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
         {TABS.map(tab => (
           <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => setActiveTab(tab.key)} />
         ))}
+      </View>
+
+      <View style={s.tools}>
+        <View style={s.searchBox}>
+          <TextInput
+            style={s.searchInput}
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Search logbook"
+            placeholderTextColor={COLORS.dim}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchText('')} style={s.searchClear}>
+              <Text style={s.searchClearTxt}>×</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {activeTab === 'flights' && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.sortRow}>
+            {SORT_OPTIONS.map(option => {
+              const active = sortKey === option.key;
+              return (
+                <TouchableOpacity key={option.key} style={[s.sortChip, active && s.sortChipActive]} onPress={() => selectSort(option.key)} activeOpacity={0.82}>
+                  <Text style={[s.sortChipTxt, active && s.sortChipTxtActive]}>
+                    {option.label}{active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
       <FlatList
@@ -909,6 +1039,68 @@ const s = StyleSheet.create({
   },
   tabTxtActive: {
     color: COLORS.ink,
+  },
+  tools: {
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    gap: 8,
+  },
+  searchBox: {
+    minHeight: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+    backgroundColor: COLORS.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 12,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '700',
+    paddingVertical: 8,
+    paddingRight: 8,
+  },
+  searchClear: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchClearTxt: {
+    color: COLORS.muted,
+    fontSize: 20,
+    lineHeight: 22,
+    fontWeight: '700',
+  },
+  sortRow: {
+    gap: 7,
+    paddingRight: 14,
+  },
+  sortChip: {
+    height: 32,
+    borderRadius: 8,
+    paddingHorizontal: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.whiteLine,
+    backgroundColor: COLORS.surface,
+  },
+  sortChipActive: {
+    borderColor: 'rgba(255, 138, 61, 0.36)',
+    backgroundColor: 'rgba(255, 138, 61, 0.12)',
+  },
+  sortChipTxt: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  sortChipTxtActive: {
+    color: COLORS.amber,
   },
 
   //list
