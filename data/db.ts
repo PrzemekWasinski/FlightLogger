@@ -9,6 +9,10 @@ export interface Flight {
   aircraft?: string;
   registration?: string;
   date?: string;
+  flight_number?: string;
+  flight_status?: string;
+  notes?: string;
+  special?: string;
   msn?: string;
   dep_runway?: string;
   arr_runway?: string;
@@ -48,6 +52,10 @@ export function initDb(): void {
       aircraft     TEXT,
       registration TEXT,
       date         TEXT,
+      flight_number TEXT,
+      flight_status TEXT,
+      notes        TEXT,
+      special      TEXT,
       msn          TEXT,
       dep_runway   TEXT,
       arr_runway   TEXT,
@@ -58,6 +66,10 @@ export function initDb(): void {
   `);
   //add distance_km to existing dbs that predate this column
   try { db.execSync('ALTER TABLE flights ADD COLUMN distance_km REAL'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN flight_number TEXT'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN flight_status TEXT'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN notes TEXT'); } catch {}
+  try { db.execSync('ALTER TABLE flights ADD COLUMN special TEXT'); } catch {}
   try { db.execSync('ALTER TABLE flights ADD COLUMN msn TEXT'); } catch {}
   try { db.execSync('ALTER TABLE flights ADD COLUMN dep_runway TEXT'); } catch {}
   try { db.execSync('ALTER TABLE flights ADD COLUMN arr_runway TEXT'); } catch {}
@@ -97,6 +109,10 @@ export function insertFlight(
   aircraft?: string,
   registration?: string,
   date?: string,
+  flight_number?: string,
+  flight_status?: string,
+  notes?: string,
+  special?: string,
   msn?: string,
   dep_runway?: string,
   arr_runway?: string,
@@ -104,8 +120,9 @@ export function insertFlight(
   cabin_class?: string,
 ): void {
   db.runSync(
-    'INSERT INTO flights (origin, destination, airline, aircraft, registration, date, msn, dep_runway, arr_runway, cruise_altitude, cabin_class, distance_km) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO flights (origin, destination, airline, aircraft, registration, date, flight_number, flight_status, notes, special, msn, dep_runway, arr_runway, cruise_altitude, cabin_class, distance_km) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     from, to, airline ?? null, aircraft ?? null, registration ?? null, date ?? null,
+    flight_number ?? null, flight_status ?? null, notes ?? null, special ?? null,
     msn ?? null, dep_runway ?? null, arr_runway ?? null, cruise_altitude ?? null, cabin_class ?? null,
     calcDistance(from, to),
   );
@@ -123,6 +140,10 @@ export function updateFlight(
   aircraft?: string,
   registration?: string,
   date?: string,
+  flight_number?: string,
+  flight_status?: string,
+  notes?: string,
+  special?: string,
   msn?: string,
   dep_runway?: string,
   arr_runway?: string,
@@ -130,8 +151,9 @@ export function updateFlight(
   cabin_class?: string,
 ): void {
   db.runSync(
-    'UPDATE flights SET origin = ?, destination = ?, airline = ?, aircraft = ?, registration = ?, date = ?, msn = ?, dep_runway = ?, arr_runway = ?, cruise_altitude = ?, cabin_class = ?, distance_km = ? WHERE id = ?',
+    'UPDATE flights SET origin = ?, destination = ?, airline = ?, aircraft = ?, registration = ?, date = ?, flight_number = ?, flight_status = ?, notes = ?, special = ?, msn = ?, dep_runway = ?, arr_runway = ?, cruise_altitude = ?, cabin_class = ?, distance_km = ? WHERE id = ?',
     from, to, airline ?? null, aircraft ?? null, registration ?? null, date ?? null,
+    flight_number ?? null, flight_status ?? null, notes ?? null, special ?? null,
     msn ?? null, dep_runway ?? null, arr_runway ?? null, cruise_altitude ?? null, cabin_class ?? null,
     calcDistance(from, to), id,
   );
@@ -141,7 +163,8 @@ export function getAllFlights(): Flight[] {
   return db
     .getAllSync<{
       id: number; origin: string; destination: string; airline: string | null; aircraft: string | null;
-      registration: string | null; date: string | null; msn: string | null; dep_runway: string | null;
+      registration: string | null; date: string | null; flight_number: string | null; flight_status: string | null;
+      notes: string | null; special: string | null; msn: string | null; dep_runway: string | null;
       arr_runway: string | null; cruise_altitude: string | null; cabin_class: string | null; distance_km: number | null;
     }>
     ('SELECT * FROM flights ORDER BY id')
@@ -153,6 +176,10 @@ export function getAllFlights(): Flight[] {
       aircraft:     r.aircraft     ?? undefined,
       registration: r.registration ?? undefined,
       date:         r.date         ?? undefined,
+      flight_number: r.flight_number ?? undefined,
+      flight_status: r.flight_status ?? undefined,
+      notes:        r.notes        ?? undefined,
+      special:      r.special      ?? undefined,
       msn:          r.msn          ?? undefined,
       dep_runway:   r.dep_runway   ?? undefined,
       arr_runway:   r.arr_runway   ?? undefined,

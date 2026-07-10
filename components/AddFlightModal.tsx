@@ -84,6 +84,10 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
   const [registration, setRegistration] = useState('');
   const [airline,     setAirline]     = useState('');
   const [date,        setDate]        = useState('');
+  const [flightNumber, setFlightNumber] = useState('');
+  const [flightStatus, setFlightStatus] = useState('');
+  const [notes,       setNotes]       = useState('');
+  const [special,     setSpecial]     = useState('');
   const [msn,         setMsn]         = useState('');
   const [depRunway,   setDepRunway]   = useState('');
   const [arrRunway,   setArrRunway]   = useState('');
@@ -157,6 +161,10 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
       aircraft.trim()     || undefined,
       registration.trim().toUpperCase() || undefined,
       date.trim()         || undefined,
+      flightNumber.trim().toUpperCase() || undefined,
+      flightStatus.trim() || undefined,
+      notes.trim() || undefined,
+      special.trim() || undefined,
       msn.trim().toUpperCase() || undefined,
       depRunway.trim().toUpperCase() || undefined,
       arrRunway.trim().toUpperCase() || undefined,
@@ -169,6 +177,10 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
     setRegistration('');
     setAirline('');
     setDate('');
+    setFlightNumber('');
+    setFlightStatus('');
+    setNotes('');
+    setSpecial('');
     setMsn('');
     setDepRunway('');
     setArrRunway('');
@@ -262,6 +274,19 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
             <View style={s.detailOuter}>
               <View style={s.detailCard}>
                 <View style={s.detailRow}>
+                  <Text style={s.detailTag}>FLIGHT NUMBER</Text>
+                  <TextInput
+                    style={s.detailInput}
+                    value={flightNumber}
+                    onChangeText={setFlightNumber}
+                    placeholder="BA117"
+                    placeholderTextColor={COLORS.dim}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                  />
+                </View>
+                <View style={s.rule} />
+                <View style={s.detailRow}>
                   <Text style={s.detailTag}>AIRCRAFT</Text>
                   <TextInput
                     style={s.detailInput}
@@ -311,6 +336,18 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                     onBlur={onInputBlur}
                     placeholder="British Airways"
                     placeholderTextColor={COLORS.dim}
+                  />
+                </View>
+                <View style={s.rule} />
+                <View style={s.detailRow}>
+                  <Text style={s.detailTag}>FLIGHT STATUS</Text>
+                  <TextInput
+                    style={s.detailInput}
+                    value={flightStatus}
+                    onChangeText={setFlightStatus}
+                    placeholder="On time, delayed, diverted..."
+                    placeholderTextColor={COLORS.dim}
+                    autoCorrect={false}
                   />
                 </View>
                 <View style={s.rule} />
@@ -366,6 +403,30 @@ export function AddFlightModal({ visible, onClose, onFlightChange }: Props) {
                       placeholderTextColor={COLORS.dim}
                     />
                   </View>
+                </View>
+                <View style={s.rule} />
+                <View style={s.detailRow}>
+                  <Text style={s.detailTag}>SPECIAL LIVERY</Text>
+                  <TextInput
+                    style={s.detailInput}
+                    value={special}
+                    onChangeText={setSpecial}
+                    placeholder="Special Livery"
+                    placeholderTextColor={COLORS.dim}
+                  />
+                </View>
+                <View style={s.rule} />
+                <View style={s.detailRow}>
+                  <Text style={s.detailTag}>NOTES</Text>
+                  <TextInput
+                    style={[s.detailInput, s.notesInput]}
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder="Write any extra details about this flight"
+                    placeholderTextColor={COLORS.dim}
+                    multiline
+                    textAlignVertical="top"
+                  />
                 </View>
                 <View style={s.rule} />
                 <DatePickerField
@@ -582,6 +643,10 @@ const s = StyleSheet.create({
     color: COLORS.text,
     fontSize: 15,
     padding: 0,
+  },
+  notesInput: {
+    minHeight: 92,
+    lineHeight: 20,
   },
   rule: {
     height: 1,

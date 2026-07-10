@@ -9,7 +9,6 @@ export interface LogEntry {
 
 let _nextId = 0;
 const _logs: LogEntry[] = [];
-const MAX_LOGS = 200;
 
 export function log(level: LogLevel, message: string) {
   _logs.unshift({
@@ -18,7 +17,6 @@ export function log(level: LogLevel, message: string) {
     message,
     time: new Date().toLocaleTimeString('en', { hour12: false }),
   });
-  if (_logs.length > MAX_LOGS) _logs.pop();
 }
 
 export function getLogs(): readonly LogEntry[] { return _logs; }

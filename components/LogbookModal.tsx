@@ -74,7 +74,9 @@ const AIRCRAFT_IMAGES: { key: string; src: ReturnType<typeof require> }[] = [
   { key: 'A350', src: require('../assets/aircraft/A350.png') },
   { key: 'A340', src: require('../assets/aircraft/A340.png') },
   { key: 'A330', src: require('../assets/aircraft/A330.png') },
+  { key: 'A319', src: require('../assets/aircraft/A320.png') },
   { key: 'A320', src: require('../assets/aircraft/A320.png') },
+  { key: 'A321', src: require('../assets/aircraft/A320.png') },
   { key: '787',  src: require('../assets/aircraft/787.png') },
   { key: '777',  src: require('../assets/aircraft/777.png') },
   { key: '767',  src: require('../assets/aircraft/767.png') },
@@ -206,6 +208,10 @@ function flightSearchText(flight: Flight): string {
     flight.aircraft,
     flight.registration,
     flight.date,
+    flight.flight_number,
+    flight.flight_status,
+    flight.notes,
+    flight.special,
     flight.msn,
     flight.dep_runway,
     flight.arr_runway,
@@ -275,11 +281,6 @@ interface RowProps {
   onDelete: () => void;
 }
 
-function joinDetails(parts: (string | undefined)[]): string | undefined {
-  const clean = parts.filter(Boolean) as string[];
-  return clean.length ? clean.join('  /  ') : undefined;
-}
-
 function EditGlyph() {
   return (
     <View style={s.editGlyph}>
@@ -301,20 +302,43 @@ function DeleteGlyph() {
   );
 }
 
+function NotesGlyph() {
+  return (
+    <View style={s.notesGlyph}>
+      <View style={s.notesGlyphLine} />
+      <View style={[s.notesGlyphLine, s.notesGlyphLineShort]} />
+    </View>
+  );
+}
+
+function DetailPair({ leftLabel, leftValue, rightLabel, rightValue }: {
+  leftLabel: string;
+  leftValue?: string;
+  rightLabel: string;
+  rightValue?: string;
+}) {
+  return (
+    <View style={s.detailPairRow}>
+      <View style={s.detailPairCell}>
+        <Text style={s.detailPairLabel} numberOfLines={1} allowFontScaling={false}>{leftLabel}</Text>
+        <Text style={s.detailPairValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>
+          {leftValue?.trim() || '—'}
+        </Text>
+      </View>
+      <View style={[s.detailPairCell, s.detailPairCellRight]}>
+        <Text style={[s.detailPairLabel, s.detailPairLabelRight]} numberOfLines={1} allowFontScaling={false}>{rightLabel}</Text>
+        <Text style={[s.detailPairValue, s.detailPairValueRight]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>
+          {rightValue?.trim() || '—'}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 function FlightRow({ item, onEdit, onDelete }: RowProps) {
   const aircraftImg = getAircraftImage(item.aircraft);
   const cruise = formatAltitude(item.cruise_altitude);
-  const identityLine = joinDetails([
-    item.registration,
-    item.msn ? `MSN ${item.msn}` : undefined,
-  ]);
-  const runwayLine = item.dep_runway || item.arr_runway
-    ? `Runways ${item.dep_runway ?? '—'} to ${item.arr_runway ?? '—'}`
-    : undefined;
-  const profileLine = joinDetails([
-    cruise ? `Cruise ${cruise}` : undefined,
-    item.cabin_class,
-  ]);
+  const [notesOpen, setNotesOpen] = useState(false);
   return (
     <View style={s.card}>
       <View style={s.flightTop}>
@@ -350,10 +374,13 @@ function FlightRow({ item, onEdit, onDelete }: RowProps) {
         <View style={s.flightLowerBody}>
           <View style={s.flightMeta}>
             <Text style={s.aircraftLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{item.aircraft ?? 'Aircraft not logged'}</Text>
-            <Text style={s.infoLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{item.airline ?? 'Airline not logged'}</Text>
-            {identityLine ? <Text style={s.identityLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{identityLine}</Text> : null}
-            {runwayLine ? <Text style={s.opsLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{runwayLine}</Text> : null}
-            {profileLine ? <Text style={s.profileLine} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{profileLine}</Text> : null}
+            <View style={s.detailPairs}>
+              <DetailPair leftLabel="AIRLINE" leftValue={item.airline} rightLabel="FLIGHT" rightValue={item.flight_number} />
+              <DetailPair leftLabel="REG" leftValue={item.registration} rightLabel="MSN" rightValue={item.msn} />
+              <DetailPair leftLabel="FLIGHT LEVEL" leftValue={cruise} rightLabel="SPECIAL LIVERY" rightValue={item.special} />
+              <DetailPair leftLabel="CLASS" leftValue={item.cabin_class} rightLabel="STATUS" rightValue={item.flight_status} />
+            </View>
+            {notesOpen && item.notes ? <Text style={s.notesText}>{item.notes}</Text> : null}
           </View>
 
           <View style={s.actions}>
@@ -363,6 +390,11 @@ function FlightRow({ item, onEdit, onDelete }: RowProps) {
             <TouchableOpacity onPress={onDelete} style={[s.actionBtn, s.deleteBtn]} accessibilityLabel="Delete flight">
               <DeleteGlyph />
             </TouchableOpacity>
+            {item.notes ? (
+              <TouchableOpacity onPress={() => setNotesOpen(open => !open)} style={[s.actionBtn, s.notesBtn]} accessibilityLabel="Toggle notes">
+                <NotesGlyph />
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
       </View>
@@ -422,6 +454,10 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
   const [editRegistration, setEditRegistration] = useState('');
   const [editAirline,     setEditAirline]     = useState('');
   const [editDate,        setEditDate]        = useState('');
+  const [editFlightNumber, setEditFlightNumber] = useState('');
+  const [editFlightStatus, setEditFlightStatus] = useState('');
+  const [editNotes,       setEditNotes]       = useState('');
+  const [editSpecial,     setEditSpecial]     = useState('');
   const [editMsn,         setEditMsn]         = useState('');
   const [editDepRunway,   setEditDepRunway]   = useState('');
   const [editArrRunway,   setEditArrRunway]   = useState('');
@@ -458,6 +494,10 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
     setEditRegistration(flight.registration ?? '');
     setEditAirline(flight.airline   ?? '');
     setEditDate(flight.date         ?? '');
+    setEditFlightNumber(flight.flight_number ?? '');
+    setEditFlightStatus(flight.flight_status ?? '');
+    setEditNotes(flight.notes       ?? '');
+    setEditSpecial(flight.special   ?? '');
     setEditMsn(flight.msn           ?? '');
     setEditDepRunway(flight.dep_runway ?? '');
     setEditArrRunway(flight.arr_runway ?? '');
@@ -500,6 +540,10 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
       editAircraft.trim() || undefined,
       editRegistration.trim().toUpperCase() || undefined,
       editDate.trim()     || undefined,
+      editFlightNumber.trim().toUpperCase() || undefined,
+      editFlightStatus.trim() || undefined,
+      editNotes.trim() || undefined,
+      editSpecial.trim() || undefined,
       editMsn.trim().toUpperCase() || undefined,
       editDepRunway.trim().toUpperCase() || undefined,
       editArrRunway.trim().toUpperCase() || undefined,
@@ -821,6 +865,19 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
               <View style={s.detailWrapper}>
                 <View style={s.detailCard}>
                   <View style={s.detailRow}>
+                    <Text style={s.detailTag}>FLIGHT NUMBER</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={editFlightNumber}
+                      onChangeText={setEditFlightNumber}
+                      placeholder="BA117"
+                      placeholderTextColor="#6f6f6f"
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  <View style={s.detailRule} />
+                  <View style={s.detailRow}>
                     <Text style={s.detailTag}>AIRCRAFT</Text>
                     <TextInput
                       style={s.detailInput}
@@ -870,6 +927,18 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                       onBlur={onEditInputBlur}
                       placeholder="British Airways"
                       placeholderTextColor="#6f6f6f"
+                    />
+                  </View>
+                  <View style={s.detailRule} />
+                  <View style={s.detailRow}>
+                    <Text style={s.detailTag}>FLIGHT STATUS</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={editFlightStatus}
+                      onChangeText={setEditFlightStatus}
+                      placeholder="On time, delayed, diverted..."
+                      placeholderTextColor="#6f6f6f"
+                      autoCorrect={false}
                     />
                   </View>
                   <View style={s.detailRule} />
@@ -925,6 +994,30 @@ export function LogbookModal({ visible, onClose, onFlightChange }: Props) {
                         placeholderTextColor="#6f6f6f"
                       />
                     </View>
+                  </View>
+                  <View style={s.detailRule} />
+                  <View style={s.detailRow}>
+                    <Text style={s.detailTag}>SPECIAL LIVERY</Text>
+                    <TextInput
+                      style={s.detailInput}
+                      value={editSpecial}
+                      onChangeText={setEditSpecial}
+                      placeholder="Bio Fuel Livery"
+                      placeholderTextColor="#6f6f6f"
+                    />
+                  </View>
+                  <View style={s.detailRule} />
+                  <View style={s.detailRow}>
+                    <Text style={s.detailTag}>NOTES</Text>
+                    <TextInput
+                      style={[s.detailInput, s.notesInput]}
+                      value={editNotes}
+                      onChangeText={setEditNotes}
+                      placeholder="Write any extra details about this flight"
+                      placeholderTextColor="#6f6f6f"
+                      multiline
+                      textAlignVertical="top"
+                    />
                   </View>
                   <View style={s.detailRule} />
                   <DatePickerField
@@ -1244,12 +1337,6 @@ const s = StyleSheet.create({
     minWidth: 0,
     justifyContent: 'center',
   },
-  infoLine: {
-    color: COLORS.text,
-    fontSize: 14,
-    lineHeight: 20,
-    width: '100%',
-  },
   aircraftLine: {
     color: COLORS.amber,
     fontSize: COMPACT_W ? 15 : 17,
@@ -1257,27 +1344,53 @@ const s = StyleSheet.create({
     fontWeight: '800',
     width: '100%',
   },
-  identityLine: {
-    color: COLORS.teal,
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.7,
-    marginTop: 2,
-    width: '100%',
-  },
-  opsLine: {
-    color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '700',
+  detailPairs: {
     marginTop: 6,
+    gap: 5,
+  },
+  detailPairRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  detailPairCell: {
+    flex: 1,
+    minWidth: 0,
+  },
+  detailPairCellRight: {
+    alignItems: 'flex-end',
+  },
+  detailPairLabel: {
+    color: COLORS.dim,
+    fontSize: COMPACT_W ? 7 : 8,
+    lineHeight: COMPACT_W ? 9 : 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  detailPairLabelRight: {
+    textAlign: 'right',
+  },
+  detailPairValue: {
+    color: COLORS.text,
+    fontSize: COMPACT_W ? 11 : 12,
+    lineHeight: COMPACT_W ? 14 : 15,
+    fontWeight: '800',
+    marginTop: 1,
     width: '100%',
   },
-  profileLine: {
-    color: COLORS.amber,
+  detailPairValueRight: {
+    color: COLORS.text,
+    textAlign: 'right',
+  },
+  notesText: {
+    color: COLORS.text,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '600',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.line,
     width: '100%',
   },
   actions: {
@@ -1304,6 +1417,28 @@ const s = StyleSheet.create({
   deleteBtn: {
     borderColor: 'rgba(239, 68, 68, 0.22)',
     backgroundColor: 'rgba(239, 68, 68, 0.06)',
+  },
+  notesBtn: {
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  notesGlyph: {
+    width: 14,
+    height: 16,
+    borderWidth: 1.5,
+    borderColor: COLORS.text,
+    borderRadius: 2.5,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    gap: 3,
+  },
+  notesGlyphLine: {
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: COLORS.text,
+  },
+  notesGlyphLineShort: {
+    width: '62%',
   },
   editGlyph: {
     width: 16,
@@ -1557,6 +1692,10 @@ const s = StyleSheet.create({
     color: COLORS.text,
     fontSize: 15,
     padding: 0,
+  },
+  notesInput: {
+    minHeight: 92,
+    lineHeight: 20,
   },
   detailRule: {
     height: 1,
