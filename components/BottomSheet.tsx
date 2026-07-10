@@ -270,7 +270,15 @@ function StatCard({ label, value, imageSource, noImage, borderedImage, codeLabel
               <Text key={i} style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{line}</Text>
             ))}
           </View>
-        : <Text style={card.value} allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68}>{value}</Text>
+        : <Text
+            style={[card.value, codeLabel && card.airportValue]}
+            allowFontScaling={false}
+            numberOfLines={codeLabel ? 3 : 1}
+            adjustsFontSizeToFit={!codeLabel}
+            minimumFontScale={0.68}
+          >
+            {value}
+          </Text>
       }
     </View>
   );
@@ -298,6 +306,11 @@ function EmptyChart() {
   return <Text style={chart.empty}>no data yet</Text>;
 }
 
+function airportChartLabel(code: string): string {
+  const name = AIRPORTS[code]?.name;
+  return name ? `${code}|${name}` : code;
+}
+
 function topPercent(value: number, max: number): `${number}%` {
   return `${Math.max(8, Math.min(100, (value / Math.max(max, 1)) * 100))}%` as `${number}%`;
 }
@@ -311,7 +324,13 @@ function RankedRunwayChart({ data, color, wash }: { data: { label: string; value
         <View key={label} style={[chart.rankRow, { backgroundColor: wash }]}>
           <View style={chart.rankBody}>
             <View style={chart.rankMeta}>
-              <Text style={chart.rankLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
+              {label.includes('|')
+                ? <View style={chart.rankAirportLabel}>
+                    <Text style={[chart.rankAirportCode, { color }]} numberOfLines={1}>{label.split('|')[0]}</Text>
+                    <Text style={chart.rankAirportName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>{label.split('|')[1]}</Text>
+                  </View>
+                : <Text style={chart.rankLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
+              }
               <Text style={[chart.rankValue, { color }]} allowFontScaling={false}>{value}</Text>
             </View>
             <View style={chart.runway}>
@@ -433,11 +452,18 @@ function ActivityRibbonChart({ data }: { data: { label: string; value: number }[
 
 function WeekdayDialChart({ data }: { data: { label: string; value: number }[] }) {
   const max = Math.max(...data.map(d => d.value), 1);
+  function weekdayColor(value: number): string {
+    if (value <= 0) return COLORS.dim;
+    const level = value / max;
+    const r = Math.round(74 + (255 - 74) * level);
+    const g = Math.round(36 + (138 - 36) * level);
+    const b = Math.round(18 + (61 - 18) * level);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
   return (
     <View style={chart.dialGrid}>
       {data.map(({ label, value }) => {
-        const pct = value / max;
-        const color = value > 0 ? (pct > 0.66 ? COLORS.amber : pct > 0.33 ? COLORS.coral : COLORS.purple) : COLORS.dim;
+        const color = weekdayColor(value);
         return (
           <View key={label} style={chart.dialCard}>
             <View style={[chart.dialRing, { borderColor: color, opacity: value > 0 ? 1 : 0.42 }]}>
@@ -612,7 +638,7 @@ export function BottomSheet({ hidden = false }: BottomSheetProps) {
         {/*charts*/}
         <SectionHeader title="Top 5 Airports" color={COLORS.amber} />
         <View style={styles.unframedChart}>
-          <RankedRunwayChart data={stats.topAirports} color={COLORS.amber} wash={COLORS.amberWash} />
+          <RankedRunwayChart data={stats.topAirports.map(item => ({ ...item, label: airportChartLabel(item.label) }))} color={COLORS.amber} wash={COLORS.amberWash} />
         </View>
 
         <SectionHeader title="Top 5 Airlines" color={COLORS.amber} />
@@ -753,6 +779,7 @@ const card = StyleSheet.create({
   codeBox:  { width: '100%', height: COMPACT_W ? 104 : 135, borderRadius: 6, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   codeText: { color: COLORS.amber, fontSize: COMPACT_W ? 30 : 36, fontWeight: '900', letterSpacing: 1, width: '100%', textAlign: 'center' },
   value: { width: '100%', color: COLORS.text, fontSize: 13, fontWeight: '800', textAlign: 'center' },
+  airportValue: { lineHeight: 16 },
   valueLines: { width: '100%', gap: 8, alignItems: 'center' },
   longestWrap: { width: '100%', gap: 8, alignItems: 'center' },
   routeInline: {
@@ -833,6 +860,9 @@ const chart = StyleSheet.create({
   rankBody: { flex: 1 },
   rankMeta: { flexDirection: 'row', alignItems: 'center', marginBottom: 7 },
   rankLabel: { color: COLORS.text, fontSize: 13, fontWeight: '700', flex: 1, marginRight: 10 },
+  rankAirportLabel: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', marginRight: 10, gap: 8 },
+  rankAirportCode: { fontSize: 13, fontWeight: '900', minWidth: 34 },
+  rankAirportName: { color: COLORS.text, fontSize: 12, fontWeight: '700', flex: 1 },
   rankValue: { fontSize: 13, fontWeight: '800' },
   runway: {
     height: 8,

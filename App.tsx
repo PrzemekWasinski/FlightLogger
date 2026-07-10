@@ -111,7 +111,6 @@ export default function App() {
             <View style={styles.loadingTrack}>
               <View style={[styles.loadingFill, { width: `${loadPct}%` }]} />
             </View>
-            <Text style={[styles.loadingPlane, { left: `${Math.min(loadPct, 96)}%` }]}>✈</Text>
           </View>
           <Text style={styles.loadingPct}>{loadPct}%</Text>
         </View>
@@ -254,15 +253,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
     backgroundColor: THEME.amber,
-  },
-  loadingPlane: {
-    position: 'absolute',
-    marginLeft: -11,
-    color: THEME.amberLight,
-    fontSize: 24,
-    lineHeight: 24,
-    top: 1,
-    transform: [{ rotate: '4deg' }],
   },
   loadingPct: {
     color: THEME.teal,
